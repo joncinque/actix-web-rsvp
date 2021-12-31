@@ -1,55 +1,34 @@
+mod csvdb;
+mod error;
+mod model;
 use {
-    actix_web::{
-        middleware, web, App, Error, HttpResponse, HttpServer, Result, ResponseError,
+    crate::{csvdb::CsvDb, model::RsvpParams},
+    actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
+    std::{
+        fs::OpenOptions,
+        sync::{Arc, RwLock},
     },
-    csv::{Writer, Error as CsvError},
-    derive_more::Display,
-    serde::{Deserialize, Serialize},
-    std::{path::PathBuf, sync::RwLock},
 };
 
 struct AppState {
-    rsvp_csv: RwLock<PathBuf>,
+    db: Arc<RwLock<CsvDb>>,
 }
 
 fn app_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("")
             .data(AppState {
-                rsvp_csv: RwLock::new(PathBuf::from("rsvp.csv")),
+                db: Arc::new(RwLock::new(CsvDb::new(
+                    OpenOptions::new()
+                        .write(true)
+                        .create(true)
+                        .open("rsvp.csv")
+                        .unwrap(),
+                ))),
             })
             .service(web::resource("/").route(web::get().to(index)))
-            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
+            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp))),
     );
-}
-
-#[derive(Debug, Display)]
-pub enum RsvpError {
-    #[display(fmt = "Error writing csv")]
-    CsvError,
-}
-
-impl From<CsvError> for RsvpError {
-    fn from(_error: CsvError) -> Self {
-        Self::CsvError
-    }
-}
-
-impl ResponseError for RsvpError {
-    fn error_response(&self) -> HttpResponse {
-        match self {
-            RsvpError::CsvError => {
-                println!("Issue writing the csv file");
-                HttpResponse::InternalServerError().finish()
-            }
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RsvpParams {
-    name: String,
-    attending: bool,
 }
 
 /// Return the main page
@@ -63,15 +42,13 @@ async fn index() -> Result<HttpResponse> {
 async fn handle_rsvp(
     state: web::Data<AppState>,
     params: web::Form<RsvpParams>,
-) -> Result<HttpResponse, Error> {
-    let path = state.rsvp_csv.write().unwrap();
-    let mut wtr = Writer::from_path(path.as_path()).unwrap();
+) -> Result<HttpResponse, ActixError> {
+    let mut db = state.db.write().unwrap();
     let name = params.name.clone();
-    wtr.serialize(params.into_inner()).map_err(|e| RsvpError::from(e))?;
-    Ok(HttpResponse::Ok().content_type("text/plain").body(format!(
-        "Your name is {}, and AppState path is: {}",
-        name, path.to_str().unwrap()
-    )))
+    db.insert(params.into_inner())?;
+    Ok(HttpResponse::Ok()
+        .content_type("text/plain")
+        .body(format!("Your name is {}", name,)))
 }
 
 #[actix_web::main]
@@ -95,6 +72,7 @@ mod tests {
     use actix_web::http::{header::CONTENT_TYPE, HeaderValue, StatusCode};
     use actix_web::test::{self, TestRequest};
     use actix_web::web::Form;
+    use tempfile::tempfile;
 
     trait BodyTest {
         fn as_str(&self) -> &str;
@@ -119,7 +97,7 @@ mod tests {
     async fn handle_rsvp_unit_test() {
         let state = TestRequest::default()
             .data(AppState {
-                rsvp_csv: RwLock::new(PathBuf::from("test.csv")),
+                db: Arc::new(RwLock::new(CsvDb::new(tempfile().unwrap()))),
             })
             .to_http_request();
         let data = state.app_data::<actix_web::web::Data<AppState>>().unwrap();
@@ -134,10 +112,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/plain")
         );
-        assert_eq!(
-            resp.body().as_str(),
-            "Your name is John, and AppState path is: test.csv"
-        );
+        assert_eq!(resp.body().as_str(), "Your name is John");
     }
 
     #[actix_rt::test]
@@ -157,9 +132,6 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/plain")
         );
-        assert_eq!(
-            resp.response().body().as_str(),
-            "Your name is John, and AppState path is: rsvp.csv"
-        );
+        assert_eq!(resp.response().body().as_str(), "Your name is John");
     }
 }
