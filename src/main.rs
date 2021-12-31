@@ -27,7 +27,7 @@ fn app_config(config: &mut web::ServiceConfig) {
                 ))),
             })
             .service(web::resource("/").route(web::get().to(index)))
-            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp))),
+            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
     );
 }
 
