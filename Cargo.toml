@@ -1,0 +1,14 @@
+[package]
+name = "actix-web-rsvp"
+version = "0.0.1"
+authors = ["Jon Cinque <me@jonc.dev>"]
+edition = "2021"
+
+[dependencies]
+actix-web = "3"
+csv = "1"
+derive_more = "0.99"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+actix-rt = "1"
