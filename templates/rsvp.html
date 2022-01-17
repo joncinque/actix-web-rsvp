@@ -7,32 +7,42 @@
     <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.teal-amber.min.css">
     <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
     <script language="JavaScript">
-      function show(id) {
-        document.getElementById(id).style.display = 'block';
-      }
-      function hide(id) {
-        document.getElementById(id).style.display = 'none';
-      }
+      function show(id) \{document.getElementById(id).style.display = 'block';}
+      function hide(id) \{document.getElementById(id).style.display = 'none';}
     </script>
   </head>
   <body>
     <h3>RSVP</h3>
     <form action=/rsvp method=POST>
       <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-        <input class="mdl-textfield__input" type="text" name="name">
+        <input class="mdl-textfield__input" type="text" name="name" value="{name}">
         <label class="mdl-textfield__label" for="name">Name</label>
       </div>
       <label id="yes" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-yes">
-        <input onchange="show('they-said-yes')" type="radio" id="option-yes" class="mdl-radio__button" name="attending" value="true">
+        <input
+          onchange="show('they-said-yes')" type="radio" id="option-yes"
+          class="mdl-radio__button"
+          name="attending"
+          value="true"
+          {{ if attending }}checked{{ endif }}
+        >
         <span class="mdl-radio__label">Attending</span>
       </label>
       <label id="no" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-no">
-        <input onchange="hide('they-said-yes')" type="radio" id="option-no" class="mdl-radio__button" name="attending" value="false">
+        <input
+          onchange="hide('they-said-yes')" type="radio" id="option-no"
+          class="mdl-radio__button"
+          name="attending"
+          value="false"
+          {{ if not attending }}checked{{ endif }}
+        >
         <span class="mdl-radio__label">Not attending</span>
       </label>
-      <div id="they-said-yes" style="display: none">
-        <input class="input-text required email" type="text" name="EMAIL" id="id_email" placeholder="Email" />
-        <input type="hidden" name="name" id="id_name_email">
+      <div id="they-said-yes" style="display: {{ if attending }}block{{ else }}none{{ endif }}">
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+          <input class="mdl-textfield__input" type="text" name="email" value="{email}">
+          <label class="mdl-textfield__label" for="email">Email</label>
+        </div>
       </div>
       <button type=submit class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Submit form</button>
     </form>

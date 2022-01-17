@@ -1,6 +1,6 @@
 use {
     crate::{
-        error::RsvpError,
+        error::Error,
         model::{RsvpModel, RsvpParams},
     },
     chrono::{DateTime, Utc},
@@ -25,6 +25,7 @@ impl CsvDb {
         Self { file, datetime }
     }
 
+    /// Update the time in the CSV file to the given time, useful for testing
     pub fn update_time(&mut self, new_datetime: DateTime<Utc>) {
         self.datetime = new_datetime;
     }
@@ -33,7 +34,7 @@ impl CsvDb {
     ///
     /// Search for a record. If not found, insert a new record at the end. If found,
     /// erase the previous record and insert a new one.
-    pub fn upsert(&mut self, params: RsvpParams) -> Result<(), RsvpError> {
+    pub fn upsert(&mut self, params: RsvpParams) -> Result<RsvpModel, Error> {
         let maybe_record = self.remove(&params.name)?; // remove keeps the file in the right place for writing
         let record_to_insert = if let Some(mut record) = maybe_record {
             record.update(params, self.datetime)?;
@@ -44,7 +45,8 @@ impl CsvDb {
         let mut wtr = WriterBuilder::new()
             .has_headers(false)
             .from_writer(&self.file);
-        wtr.serialize(record_to_insert).map_err(RsvpError::from)
+        wtr.serialize(record_to_insert.clone()).map_err(Error::from)?;
+        Ok(record_to_insert)
     }
 
     /// Removes a record by name if found, rewriting the whole file
@@ -52,17 +54,19 @@ impl CsvDb {
     /// Ideally, we could use an memmap, clear just the bytes of the entry,
     /// and append at the end, with some regular compaction.  This is good enough
     /// for v1 and small enough sets.
-    pub fn remove(&mut self, name: &str) -> Result<Option<RsvpModel>, RsvpError> {
+    pub fn remove(&mut self, name: &str) -> Result<Option<RsvpModel>, Error> {
         let records = self.get_all()?;
-        if let Some(record) = records.iter().find(|r| r.name == name) {
+        let name = name.to_lowercase();
+        if let Some(record) = records.iter().find(|r| r.name.to_lowercase() == name) {
+            self.file.set_len(0)?;
             let record = record.clone();
             self.file.seek(SeekFrom::Start(0))?;
             let mut wtr = WriterBuilder::new()
                 .has_headers(false)
                 .from_writer(&self.file);
             for record in records {
-                if record.name != name {
-                    wtr.serialize(record).map_err(RsvpError::from)?;
+                if record.name.to_lowercase() != name {
+                    wtr.serialize(record).map_err(Error::from)?;
                 }
             }
             Ok(Some(record))
@@ -72,8 +76,24 @@ impl CsvDb {
         }
     }
 
+    /// Get a specific record
+    pub fn get(&mut self, name: &str) -> Result<Option<RsvpModel>, Error> {
+        self.file.seek(SeekFrom::Start(0))?;
+        let name = name.to_lowercase();
+        let mut reader = ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(&self.file);
+        for result in reader.deserialize() {
+            let rsvp: RsvpModel = result?;
+            if rsvp.name.to_lowercase() == name {
+                return Ok(Some(rsvp));
+            }
+        }
+        Ok(None)
+    }
+
     /// Get all records
-    pub fn get_all(&mut self) -> Result<Vec<RsvpModel>, RsvpError> {
+    pub fn get_all(&mut self) -> Result<Vec<RsvpModel>, Error> {
         self.file.seek(SeekFrom::Start(0))?;
         let mut reader = ReaderBuilder::new()
             .has_headers(false)
@@ -88,17 +108,27 @@ impl CsvDb {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod test {
     use {
         super::*,
         std::io::{BufReader, Read, Seek, SeekFrom},
         tempfile::tempfile,
     };
 
+    pub fn test_db(num: usize) -> CsvDb {
+        let mut db = CsvDb::new(tempfile().unwrap());
+        let rsvps = test_rsvps(num);
+        for rsvp in rsvps {
+            db.upsert(rsvp).unwrap();
+        }
+        db
+    }
+
     fn test_rsvp() -> RsvpParams {
         RsvpParams {
             name: "John".to_string(),
             attending: true,
+            email: "john@john.john".to_string(),
         }
     }
 
@@ -107,6 +137,7 @@ mod tests {
             .map(|n| RsvpParams {
                 name: format!("John-{}", n),
                 attending: n % 2 == 0,
+                email: format!("john{}@john.john", n),
             })
             .collect()
     }
@@ -115,14 +146,15 @@ mod tests {
     fn insert() {
         let datetime = Utc::now();
         let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
-        db.upsert(test_rsvp()).unwrap();
+        let rsvp = test_rsvp();
+        db.upsert(rsvp.clone()).unwrap();
 
         db.file.seek(SeekFrom::Start(0)).unwrap();
         let mut contents = String::new();
         let mut buf_reader = BufReader::new(&db.file);
         buf_reader.read_to_string(&mut contents).unwrap();
         assert_eq!(
-            format!("John,true,{:?},{:?}\n", datetime, datetime),
+            format!("{},{},{},{:?},{:?}\n", rsvp.name, rsvp.attending, rsvp.email, datetime, datetime),
             contents
         );
 
@@ -152,6 +184,7 @@ mod tests {
         let updated = RsvpParams {
             name: format!("John-{}", test_index),
             attending: true,
+            email: "".to_string(),
         };
         db.upsert(updated.clone()).unwrap();
 
@@ -159,5 +192,20 @@ mod tests {
         assert_eq!(all_records.len(), num_test);
         assert_eq!(all_records[num_test - 1].name, updated.name);
         assert_eq!(all_records[num_test - 1].attending, updated.attending);
+    }
+
+    fn check_name(name: &str) {
+        let mut db = CsvDb::new(tempfile().unwrap());
+        db.upsert(RsvpParams { name: name.to_string(), attending: false, email: name.to_string()}).unwrap();
+        let all_records = db.get_all().unwrap();
+        assert_eq!(all_records.len(), 1);
+        assert_eq!(all_records[0].name, name);
+    }
+
+    #[test]
+    fn weird_chars() {
+        check_name("comma,");
+        check_name("newline\n");
+        check_name("newline,and comma\n");
     }
 }
