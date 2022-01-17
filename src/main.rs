@@ -1,9 +1,11 @@
 mod csvdb;
 mod error;
 mod model;
+
 use {
     crate::{csvdb::CsvDb, model::RsvpParams},
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
+    chrono::Utc,
     std::{
         fs::OpenOptions,
         sync::{Arc, RwLock},
@@ -20,6 +22,7 @@ fn app_config(config: &mut web::ServiceConfig) {
             .data(AppState {
                 db: Arc::new(RwLock::new(CsvDb::new(
                     OpenOptions::new()
+                        .read(true)
                         .write(true)
                         .create(true)
                         .open("rsvp.csv")
@@ -27,7 +30,7 @@ fn app_config(config: &mut web::ServiceConfig) {
                 ))),
             })
             .service(web::resource("/").route(web::get().to(index)))
-            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
+            .service(web::resource("/rsvp").route(web::post().to(handle_rsvp))),
     );
 }
 
@@ -44,8 +47,9 @@ async fn handle_rsvp(
     params: web::Form<RsvpParams>,
 ) -> Result<HttpResponse, ActixError> {
     let mut db = state.db.write().unwrap();
+    db.update_time(Utc::now());
     let name = params.name.clone();
-    db.insert(params.into_inner())?;
+    db.upsert(params.into_inner())?;
     Ok(HttpResponse::Ok()
         .content_type("text/plain")
         .body(format!("Your name is {}", name,)))

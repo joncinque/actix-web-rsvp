@@ -6,36 +6,34 @@ use {
 };
 
 #[derive(Debug, Display)]
-pub enum Error {
+pub enum RsvpError {
     #[display(fmt = "Error with csv")]
-    CsvError,
+    Csv(CsvError),
     #[display(fmt = "Error with io")]
-    IoError,
+    Io(IoError),
+    #[display(fmt = "Error updating record ")]
+    Update,
 }
 
-impl From<CsvError> for Error {
-    fn from(_error: CsvError) -> Self {
-        Self::CsvError
+impl From<CsvError> for RsvpError {
+    fn from(error: CsvError) -> Self {
+        Self::Csv(error)
     }
 }
 
-impl From<IoError> for Error {
-    fn from(_error: IoError) -> Self {
-        Self::IoError
+impl From<IoError> for RsvpError {
+    fn from(error: IoError) -> Self {
+        Self::Io(error)
     }
 }
 
-impl ResponseError for Error {
+impl ResponseError for RsvpError {
     fn error_response(&self) -> HttpResponse {
+        println!("{}", self);
         match self {
-            Error::CsvError => {
-                println!("Error with csv");
-                HttpResponse::InternalServerError().finish()
-            }
-            Error::IoError => {
-                println!("Error with io");
-                HttpResponse::InternalServerError().finish()
-            }
+            Self::Csv(_) => HttpResponse::InternalServerError().finish(),
+            Self::Io(_) => HttpResponse::InternalServerError().finish(),
+            Self::Update => HttpResponse::InternalServerError().finish(),
         }
     }
 }
