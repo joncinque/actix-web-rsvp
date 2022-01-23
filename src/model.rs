@@ -26,22 +26,22 @@ pub struct RsvpModel {
 }
 
 impl RsvpModel {
-    pub fn new_with_params(params: RsvpParams, datetime: DateTime<Utc>) -> Self {
+    pub fn new_with_params(params: &RsvpParams, datetime: DateTime<Utc>) -> Self {
         Self {
-            name: params.name,
+            name: params.name.clone(),
             attending: params.attending,
-            email: params.email,
+            email: params.email.clone(),
             created_at: datetime,
             updated_at: datetime,
         }
     }
 
-    pub fn update(&mut self, params: RsvpParams, datetime: DateTime<Utc>) -> Result<(), Error> {
+    pub fn update(&mut self, params: &RsvpParams, datetime: DateTime<Utc>) -> Result<(), Error> {
         if self.name != params.name {
             return Err(Error::Update);
         }
         self.attending = params.attending;
-        self.email = params.email;
+        self.email = params.email.clone();
         self.updated_at = datetime;
         Ok(())
     }

@@ -1,11 +1,16 @@
 use {
     actix_http::{body::Body, Response},
-    actix_web::{web, HttpResponse, ResponseError, Result as ActixResult},
     actix_web::dev::ServiceResponse,
     actix_web::http::StatusCode,
     actix_web::middleware::errhandlers::{ErrorHandlerResponse, ErrorHandlers},
+    actix_web::{web, HttpResponse, ResponseError, Result as ActixResult},
     csv::Error as CsvError,
     derive_more::Display,
+    lettre::{
+        address::AddressError, error::Error as EmailError,
+        transport::sendmail::Error as SendmailError, transport::stub::Error as StubTransportError,
+    },
+    serde_json::Error as SerdeError,
     std::io::Error as IoError,
     tinytemplate::{error::Error as TemplateError, TinyTemplate},
 };
@@ -19,7 +24,17 @@ pub enum Error {
     #[display(fmt = "Error updating record")]
     Update,
     #[display(fmt = "Error on template: {}", _0)]
-    Template(TemplateError)
+    Template(TemplateError),
+    #[display(fmt = "Error on email: {}", _0)]
+    Email(EmailError),
+    #[display(fmt = "Error on address: {}", _0)]
+    Address(AddressError),
+    #[display(fmt = "Error on sendmail: {}", _0)]
+    Sendmail(SendmailError),
+    #[display(fmt = "Error on stub emailing: {}", _0)]
+    Stub(StubTransportError),
+    #[display(fmt = "Error on serde: {}", _0)]
+    Serde(SerdeError),
 }
 
 impl From<CsvError> for Error {
@@ -40,6 +55,36 @@ impl From<TemplateError> for Error {
     }
 }
 
+impl From<AddressError> for Error {
+    fn from(error: AddressError) -> Self {
+        Self::Address(error)
+    }
+}
+
+impl From<SendmailError> for Error {
+    fn from(error: SendmailError) -> Self {
+        Self::Sendmail(error)
+    }
+}
+
+impl From<StubTransportError> for Error {
+    fn from(error: StubTransportError) -> Self {
+        Self::Stub(error)
+    }
+}
+
+impl From<EmailError> for Error {
+    fn from(error: EmailError) -> Self {
+        Self::Email(error)
+    }
+}
+
+impl From<SerdeError> for Error {
+    fn from(error: SerdeError) -> Self {
+        Self::Serde(error)
+    }
+}
+
 impl ResponseError for Error {
     fn error_response(&self) -> HttpResponse {
         println!("{}", self);
@@ -48,6 +93,11 @@ impl ResponseError for Error {
             Self::Io(_) => HttpResponse::InternalServerError().finish(),
             Self::Update => HttpResponse::InternalServerError().finish(),
             Self::Template(_) => HttpResponse::InternalServerError().finish(),
+            Self::Email(_) => HttpResponse::InternalServerError().finish(),
+            Self::Sendmail(_) => HttpResponse::InternalServerError().finish(),
+            Self::Stub(_) => HttpResponse::InternalServerError().finish(),
+            Self::Address(_) => HttpResponse::InternalServerError().finish(),
+            Self::Serde(_) => HttpResponse::InternalServerError().finish(),
         }
     }
 }
@@ -97,4 +147,3 @@ fn get_error_response<B>(res: &ServiceResponse<B>, error: &str) -> Response<Body
         None => fallback(error),
     }
 }
-

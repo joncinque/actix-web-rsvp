@@ -7,15 +7,15 @@ use {
     csv::{ReaderBuilder, WriterBuilder},
     std::{
         fs::File,
-        io::{Seek, SeekFrom},
+        io::{BufReader, Read, Seek, SeekFrom},
     },
+    tempfile::tempfile,
 };
 
 pub struct CsvDb {
     pub file: File,
     pub datetime: DateTime<Utc>,
 }
-
 impl CsvDb {
     pub fn new(file: File) -> Self {
         Self::new_with_time(file, Utc::now())
@@ -34,7 +34,7 @@ impl CsvDb {
     ///
     /// Search for a record. If not found, insert a new record at the end. If found,
     /// erase the previous record and insert a new one.
-    pub fn upsert(&mut self, params: RsvpParams) -> Result<RsvpModel, Error> {
+    pub fn upsert(&mut self, params: &RsvpParams) -> Result<RsvpModel, Error> {
         let maybe_record = self.remove(&params.name)?; // remove keeps the file in the right place for writing
         let record_to_insert = if let Some(mut record) = maybe_record {
             record.update(params, self.datetime)?;
@@ -45,7 +45,8 @@ impl CsvDb {
         let mut wtr = WriterBuilder::new()
             .has_headers(false)
             .from_writer(&self.file);
-        wtr.serialize(record_to_insert.clone()).map_err(Error::from)?;
+        wtr.serialize(record_to_insert.clone())
+            .map_err(Error::from)?;
         Ok(record_to_insert)
     }
 
@@ -105,21 +106,31 @@ impl CsvDb {
         }
         Ok(records)
     }
+
+    /// Doesn't implement ToString because it requires a `&mut self`
+    pub fn dump(&mut self) -> String {
+        self.file.seek(SeekFrom::Start(0)).unwrap();
+        let mut contents = String::new();
+        let mut buf_reader = BufReader::new(&self.file);
+        buf_reader.read_to_string(&mut contents).unwrap();
+        contents
+    }
+}
+impl Default for CsvDb {
+    fn default() -> Self {
+        CsvDb::new(tempfile().unwrap())
+    }
 }
 
 #[cfg(test)]
 pub mod test {
-    use {
-        super::*,
-        std::io::{BufReader, Read, Seek, SeekFrom},
-        tempfile::tempfile,
-    };
+    use super::*;
 
     pub fn test_db(num: usize) -> CsvDb {
         let mut db = CsvDb::new(tempfile().unwrap());
         let rsvps = test_rsvps(num);
         for rsvp in rsvps {
-            db.upsert(rsvp).unwrap();
+            db.upsert(&rsvp).unwrap();
         }
         db
     }
@@ -147,20 +158,20 @@ pub mod test {
         let datetime = Utc::now();
         let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
         let rsvp = test_rsvp();
-        db.upsert(rsvp.clone()).unwrap();
+        db.upsert(&rsvp).unwrap();
 
-        db.file.seek(SeekFrom::Start(0)).unwrap();
-        let mut contents = String::new();
-        let mut buf_reader = BufReader::new(&db.file);
-        buf_reader.read_to_string(&mut contents).unwrap();
+        let contents = db.dump();
         assert_eq!(
-            format!("{},{},{},{:?},{:?}\n", rsvp.name, rsvp.attending, rsvp.email, datetime, datetime),
+            format!(
+                "{},{},{},{:?},{:?}\n",
+                rsvp.name, rsvp.attending, rsvp.email, datetime, datetime
+            ),
             contents
         );
 
         let all_records = db.get_all().unwrap();
         assert_eq!(all_records.len(), 1);
-        let test_record = RsvpModel::new_with_params(test_rsvp(), datetime);
+        let test_record = RsvpModel::new_with_params(&test_rsvp(), datetime);
         assert_eq!(all_records[0], test_record);
         assert!(db.remove(&test_rsvp().name).unwrap().is_some());
         assert!(db.remove("Blah").unwrap().is_none());
@@ -172,7 +183,7 @@ pub mod test {
         let num_test = 50;
         let rsvps = test_rsvps(50);
         for rsvp in rsvps {
-            db.upsert(rsvp).unwrap();
+            db.upsert(&rsvp).unwrap();
         }
 
         let all_records = db.get_all().unwrap();
@@ -186,7 +197,7 @@ pub mod test {
             attending: true,
             email: "".to_string(),
         };
-        db.upsert(updated.clone()).unwrap();
+        db.upsert(&updated).unwrap();
 
         let all_records = db.get_all().unwrap();
         assert_eq!(all_records.len(), num_test);
@@ -196,7 +207,12 @@ pub mod test {
 
     fn check_name(name: &str) {
         let mut db = CsvDb::new(tempfile().unwrap());
-        db.upsert(RsvpParams { name: name.to_string(), attending: false, email: name.to_string()}).unwrap();
+        db.upsert(&RsvpParams {
+            name: name.to_string(),
+            attending: false,
+            email: name.to_string(),
+        })
+        .unwrap();
         let all_records = db.get_all().unwrap();
         assert_eq!(all_records.len(), 1);
         assert_eq!(all_records[0].name, name);
