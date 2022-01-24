@@ -216,7 +216,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use super::*;
 
-    use crate::csvdb::test::test_db;
+    use crate::csvdb::test::{test_db, test_rsvp};
     use actix_web::body::{Body, ResponseBody};
     use actix_web::dev::{Service, ServiceResponse};
     use actix_web::http::{header::CONTENT_TYPE, HeaderValue, StatusCode};
@@ -286,11 +286,7 @@ mod tests {
             .app_data(web::Data::new(AppState::default()))
             .to_http_request();
         let data = state.app_data::<web::Data<AppState>>().unwrap();
-        let params = Form(RsvpParams {
-            name: "John".to_string(),
-            attending: true,
-            email: "test".to_string(),
-        });
+        let params = Form(test_rsvp());
         let resp = handle_rsvp(data.clone(), params).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
@@ -310,14 +306,9 @@ mod tests {
                 .configure(app_config),
         )
         .await;
-        let name = "John\n, wow";
         let req = test::TestRequest::post()
             .uri("/rsvp")
-            .set_form(&RsvpParams {
-                name: name.to_string(),
-                attending: true,
-                email: "test".to_string(),
-            })
+            .set_form(&test_rsvp())
             .to_request();
         let resp: ServiceResponse = app.call(req).await.unwrap();
 

@@ -135,11 +135,18 @@ pub mod test {
         db
     }
 
-    fn test_rsvp() -> RsvpParams {
+    pub fn test_rsvp() -> RsvpParams {
         RsvpParams {
             name: "John".to_string(),
-            attending: true,
             email: "john@john.john".to_string(),
+            attending: true,
+            attending_secondary: true,
+            attending_tertiary: false,
+            dietary_restrictions: "Yes".to_string(),
+            plus_one_attending: true,
+            plus_one_name: "Johnson-{}".to_string(),
+            plus_one_dietary_restrictions: "No".to_string(),
+            comments: "Can't wait!".to_string(),
         }
     }
 
@@ -147,8 +154,15 @@ pub mod test {
         (0..num)
             .map(|n| RsvpParams {
                 name: format!("John-{}", n),
-                attending: n % 2 == 0,
                 email: format!("john{}@john.john", n),
+                attending: n % 2 == 0,
+                attending_secondary: n % 3 == 0,
+                attending_tertiary: n % 5 == 0,
+                dietary_restrictions: "".to_string(),
+                plus_one_attending: n % 2 == 0,
+                plus_one_name: format!("Johnson-{}", n),
+                plus_one_dietary_restrictions: "Vegetarian".to_string(),
+                comments: format!("{} comments!", n),
             })
             .collect()
     }
@@ -163,8 +177,19 @@ pub mod test {
         let contents = db.dump();
         assert_eq!(
             format!(
-                "{},{},{},{:?},{:?}\n",
-                rsvp.name, rsvp.attending, rsvp.email, datetime, datetime
+                "{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                rsvp.name,
+                rsvp.attending,
+                rsvp.email,
+                rsvp.attending_secondary,
+                rsvp.attending_tertiary,
+                rsvp.dietary_restrictions,
+                rsvp.plus_one_attending,
+                rsvp.plus_one_name,
+                rsvp.plus_one_dietary_restrictions,
+                rsvp.comments,
+                datetime,
+                datetime
             ),
             contents
         );
@@ -196,6 +221,13 @@ pub mod test {
             name: format!("John-{}", test_index),
             attending: true,
             email: "".to_string(),
+            attending_secondary: true,
+            attending_tertiary: true,
+            dietary_restrictions: "".to_string(),
+            plus_one_attending: false,
+            plus_one_name: "".to_string(),
+            plus_one_dietary_restrictions: "".to_string(),
+            comments: "No comment.".to_string(),
         };
         db.upsert(&updated).unwrap();
 
@@ -211,6 +243,13 @@ pub mod test {
             name: name.to_string(),
             attending: false,
             email: name.to_string(),
+            attending_secondary: true,
+            attending_tertiary: true,
+            dietary_restrictions: "".to_string(),
+            plus_one_attending: false,
+            plus_one_name: "".to_string(),
+            plus_one_dietary_restrictions: "".to_string(),
+            comments: "No comment.".to_string(),
         })
         .unwrap();
         let all_records = db.get_all().unwrap();
