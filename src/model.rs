@@ -59,7 +59,7 @@ impl RsvpModel {
 
     pub fn update(&mut self, params: &RsvpParams, datetime: DateTime<Utc>) -> Result<(), Error> {
         if self.name != params.name {
-            return Err(Error::Update);
+            return Err(Error::Update(params.clone()));
         }
         self.attending = params.attending;
         self.email = params.email.clone();

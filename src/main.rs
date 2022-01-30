@@ -2,78 +2,22 @@ mod csvdb;
 mod email;
 mod error;
 mod model;
+mod state;
 
 use {
     crate::{
-        csvdb::CsvDb,
-        email::Email,
         error::{error_handlers, Error},
         model::{NameParams, RsvpParams},
+        state::AppState,
     },
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
     chrono::Utc,
     clap::{App as ClapApp, Arg},
     log::{error, info},
     serde_json::json,
-    std::{
-        fs::OpenOptions,
-        sync::{Arc, RwLock},
-    },
-    tinytemplate::TinyTemplate,
 };
 
-static ERROR: &str = include_str!("../templates/error.html");
-static NOT_FOUND_MESSAGE: &str = "Your name wasn't found, sorry!";
-static INDEX: &str = include_str!("../templates/index.html");
-static RSVP: &str = include_str!("../templates/rsvp.html");
-static CONFIRM: &str = include_str!("../templates/confirm.html");
-
-struct AppState<'a> {
-    test: bool,
-    db: Arc<RwLock<CsvDb>>,
-    tt: TinyTemplate<'a>,
-    email: Email,
-}
-impl<'a> Default for AppState<'a> {
-    fn default() -> Self {
-        Self {
-            test: true,
-            db: Arc::new(RwLock::new(CsvDb::default())),
-            tt: templates(),
-            email: Email::default(),
-        }
-    }
-}
-
-fn templates<'a>() -> TinyTemplate<'a> {
-    let mut tt = TinyTemplate::new();
-    tt.add_template("index.html", INDEX).unwrap();
-    tt.add_template("rsvp.html", RSVP).unwrap();
-    tt.add_template("error.html", ERROR).unwrap();
-    tt.add_template("confirm.html", CONFIRM).unwrap();
-    tt
-}
-
-fn rsvp_data<'a, 'arg>(
-    admins: Vec<&'arg str>,
-    csv_filename: &'arg str,
-    from: &'arg str,
-    test: bool,
-) -> web::Data<AppState<'a>> {
-    web::Data::new(AppState {
-        test,
-        db: Arc::new(RwLock::new(CsvDb::new(
-            OpenOptions::new()
-                .read(true)
-                .write(true)
-                .create(true)
-                .open(csv_filename)
-                .unwrap(),
-        ))),
-        tt: templates(),
-        email: Email::new(from, &admins),
-    })
-}
+static NOT_FOUND_MESSAGE: &str = "Your name was not found, sorry!";
 
 fn app_config(config: &mut web::ServiceConfig) {
     config.service(
@@ -81,7 +25,7 @@ fn app_config(config: &mut web::ServiceConfig) {
             .service(
                 web::resource("/")
                     .route(web::get().to(index))
-                    .route(web::post().to(handle_check)),
+                    .route(web::post().to(handle_fetch)),
             )
             .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
             .wrap(error_handlers()),
@@ -96,7 +40,7 @@ async fn index(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
 }
 
 /// Get an existing rsvp
-async fn handle_check(
+async fn handle_fetch(
     state: web::Data<AppState<'_>>,
     params: web::Form<NameParams>,
 ) -> Result<HttpResponse, ActixError> {
@@ -145,6 +89,7 @@ async fn handle_rsvp(
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }
         Err(error) => {
+            // it'd be better to do this generically, but oh well!
             if let Err(send_error) = email.send_rsvp_error(&error, &params, state.test).await {
                 error!(
                     "Could not send error email: {:?}, original error: {:?}",
@@ -199,12 +144,12 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .app_data(rsvp_data(
+            .app_data(web::Data::new(AppState::new(
                 matches.values_of("admin").unwrap().collect::<Vec<_>>(),
                 matches.value_of("csv").unwrap(),
                 matches.value_of("from").unwrap(),
                 matches.is_present("test"),
-            ))
+            )))
             .configure(app_config)
     })
     .bind("127.0.0.1:8080")?
@@ -214,14 +159,17 @@ async fn main() -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    use crate::csvdb::test::{test_db, test_rsvp};
-    use actix_web::body::{Body, ResponseBody};
-    use actix_web::dev::{Service, ServiceResponse};
-    use actix_web::http::{header::CONTENT_TYPE, HeaderValue, StatusCode};
-    use actix_web::test::{self, TestRequest};
-    use actix_web::web::Form;
+    use {
+        super::*,
+        crate::csvdb::test::{test_db, test_rsvp},
+        actix_web::{
+            body::{Body, ResponseBody},
+            dev::{Service, ServiceResponse},
+            http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
+            test::{self, TestRequest},
+            web::Form,
+        },
+    };
 
     trait BodyTest {
         fn as_str(&self) -> &str;
@@ -243,15 +191,11 @@ mod tests {
     }
 
     #[actix_rt::test]
-    async fn handle_check_unit_test() {
+    async fn handle_fetch_unit_test() {
         let mut db = test_db(10);
         let records = db.get_all().unwrap();
         let state = TestRequest::default()
-            .data(AppState {
-                db: Arc::new(RwLock::new(db)),
-                tt: templates(),
-                ..AppState::default()
-            })
+            .data(AppState::new_with_db(db))
             .to_http_request();
         let data = state.app_data::<actix_web::web::Data<AppState>>().unwrap();
 
@@ -259,7 +203,7 @@ mod tests {
         let params = Form(NameParams {
             name: records[0].name.clone(),
         });
-        let resp = handle_check(data.clone(), params).await.unwrap();
+        let resp = handle_fetch(data.clone(), params).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get(CONTENT_TYPE).unwrap(),
@@ -271,13 +215,14 @@ mod tests {
         let params = Form(NameParams {
             name: "something else".to_string(),
         });
-        let resp = handle_check(data.clone(), params).await.unwrap();
+        let resp = handle_fetch(data.clone(), params).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.body().as_str().contains("sorry!"));
+        println!("{}", resp.body().as_str());
+        assert!(resp.body().as_str().contains(NOT_FOUND_MESSAGE));
     }
 
     #[actix_rt::test]
