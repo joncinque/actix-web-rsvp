@@ -1,10 +1,11 @@
 use {
     crate::{
         error::Error,
-        model::{RsvpModel, RsvpParams},
+        model::{AddParams, RsvpModel, RsvpParams},
     },
     chrono::{DateTime, Utc},
     csv::{ReaderBuilder, WriterBuilder},
+    log::error,
     std::{
         fs::File,
         io::{BufReader, Read, Seek, SeekFrom},
@@ -30,6 +31,25 @@ impl CsvDb {
         self.datetime = new_datetime;
     }
 
+    /// Inserts a new record just based on names
+    pub fn insert(&mut self, params: &AddParams) -> Result<RsvpModel, Error> {
+        if let Some(model) = self.get(&params.name)? {
+            error!(
+                "Attempted to add {:?}, but {:?} exists already",
+                params, model
+            );
+            Err(Error::Add(params.clone()))
+        } else {
+            let record_to_insert = RsvpModel::new_with_add(params, self.datetime);
+            let mut wtr = WriterBuilder::new()
+                .has_headers(false)
+                .from_writer(&self.file);
+            wtr.serialize(record_to_insert.clone())
+                .map_err(Error::from)?;
+            Ok(record_to_insert)
+        }
+    }
+
     /// Upsert a new record at the end.
     ///
     /// Search for a record. If not found, insert a new record at the end. If found,
@@ -40,7 +60,7 @@ impl CsvDb {
             record.update(params, self.datetime)?;
             record
         } else {
-            RsvpModel::new_with_params(params, self.datetime)
+            RsvpModel::new_with_rsvp(params, self.datetime)
         };
         let mut wtr = WriterBuilder::new()
             .has_headers(false)
@@ -135,6 +155,14 @@ pub mod test {
         db
     }
 
+    pub fn test_add() -> AddParams {
+        AddParams {
+            name: "John".to_string(),
+            email: "john@john.john".to_string(),
+            plus_one_name: "Johnson".to_string(),
+        }
+    }
+
     pub fn test_rsvp() -> RsvpParams {
         RsvpParams {
             name: "John".to_string(),
@@ -144,7 +172,7 @@ pub mod test {
             attending_tertiary: false,
             dietary_restrictions: "Yes".to_string(),
             plus_one_attending: true,
-            plus_one_name: "Johnson-{}".to_string(),
+            plus_one_name: "Johnson".to_string(),
             plus_one_dietary_restrictions: "No".to_string(),
             comments: "Can't wait!".to_string(),
         }
@@ -169,6 +197,41 @@ pub mod test {
 
     #[test]
     fn insert() {
+        let datetime = Utc::now();
+        let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
+        let add = test_add();
+        let model = db.insert(&add).unwrap();
+
+        let contents = db.dump();
+        assert_eq!(
+            format!(
+                "{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                model.name,
+                model.attending,
+                model.email,
+                model.attending_secondary,
+                model.attending_tertiary,
+                model.dietary_restrictions,
+                model.plus_one_attending,
+                model.plus_one_name,
+                model.plus_one_dietary_restrictions,
+                model.comments,
+                datetime,
+                datetime
+            ),
+            contents
+        );
+
+        let all_records = db.get_all().unwrap();
+        assert_eq!(all_records.len(), 1);
+        let test_record = RsvpModel::new_with_add(&add, datetime);
+        assert_eq!(all_records[0], test_record);
+        assert!(db.remove(&add.name).unwrap().is_some());
+        assert!(db.remove("Blah").unwrap().is_none());
+    }
+
+    #[test]
+    fn upsert_one() {
         let datetime = Utc::now();
         let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
         let rsvp = test_rsvp();
@@ -196,7 +259,7 @@ pub mod test {
 
         let all_records = db.get_all().unwrap();
         assert_eq!(all_records.len(), 1);
-        let test_record = RsvpModel::new_with_params(&test_rsvp(), datetime);
+        let test_record = RsvpModel::new_with_rsvp(&test_rsvp(), datetime);
         assert_eq!(all_records[0], test_record);
         assert!(db.remove(&test_rsvp().name).unwrap().is_some());
         assert!(db.remove("Blah").unwrap().is_none());

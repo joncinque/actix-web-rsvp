@@ -13,6 +13,11 @@
         <h3>RSVP</h3>
       </div>
       <div class="mdl-grid">
+        {{ if has_error }}
+        <p>{error}</p>
+        {{ endif }}
+      </div>
+      <div class="mdl-grid">
         <form action=/ method=POST>
           <p>
             <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
@@ -24,9 +29,6 @@
             <button type=submit class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Get RSVP</button>
           </p>
         </form>
-        {{ if has_error }}
-        <p>{error}</p>
-        {{ endif }}
       </div>
     </div>
   </body>

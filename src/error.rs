@@ -1,5 +1,8 @@
 use {
-    crate::{model::RsvpParams, state::AppState},
+    crate::{
+        model::{AddParams, RsvpParams},
+        state::AppState,
+    },
     actix_http::{body::Body, Response},
     actix_web::{
         body::MessageBody,
@@ -25,6 +28,8 @@ pub enum Error {
     Csv(CsvError),
     #[display(fmt = "Error with io: {}", _0)]
     Io(IoError),
+    #[display(fmt = "Error inserting record")]
+    Add(AddParams),
     #[display(fmt = "Error updating record")]
     Update(RsvpParams),
     #[display(fmt = "Error on template: {}", _0)]

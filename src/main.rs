@@ -7,7 +7,7 @@ mod state;
 use {
     crate::{
         error::{error_handlers, Error},
-        model::{NameParams, RsvpParams},
+        model::{AddParams, NameParams, RsvpParams},
         state::AppState,
     },
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
@@ -17,7 +17,7 @@ use {
     serde_json::json,
 };
 
-static NOT_FOUND_MESSAGE: &str = "Your name was not found, sorry!";
+static NOT_FOUND_MESSAGE: &str = "Your name was not found, sorry! Please use the exact name from the invitation email, or contact the admin if you think something is wrong.";
 
 fn app_config(config: &mut web::ServiceConfig) {
     config.service(
@@ -28,6 +28,7 @@ fn app_config(config: &mut web::ServiceConfig) {
                     .route(web::post().to(handle_fetch)),
             )
             .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
+            .service(web::resource("/add").route(web::post().to(handle_add)))
             .wrap(error_handlers()),
     );
 }
@@ -101,6 +102,21 @@ async fn handle_rsvp(
     }
 }
 
+/// Add a person to the csv file
+async fn handle_add(
+    state: web::Data<AppState<'_>>,
+    params: web::Form<AddParams>,
+) -> Result<HttpResponse, ActixError> {
+    let mut db = state.db.write().unwrap();
+    db.update_time(Utc::now());
+    let params = params.into_inner();
+    info!("New person! {:?}", params);
+    let model = db.insert(&params)?;
+    Ok(HttpResponse::Ok()
+        .content_type("text/plain")
+        .body(format!("Success adding!\n{:?}", model)))
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let matches = ClapApp::new("CSV RSVP Web Server")
@@ -161,7 +177,7 @@ async fn main() -> std::io::Result<()> {
 mod tests {
     use {
         super::*,
-        crate::csvdb::test::{test_db, test_rsvp},
+        crate::csvdb::test::{test_add, test_db, test_rsvp},
         actix_web::{
             body::{Body, ResponseBody},
             dev::{Service, ServiceResponse},
@@ -226,6 +242,26 @@ mod tests {
     }
 
     #[actix_rt::test]
+    async fn handle_add_unit_test() {
+        let state = TestRequest::default()
+            .app_data(web::Data::new(AppState::default()))
+            .to_http_request();
+        let data = state.app_data::<web::Data<AppState>>().unwrap();
+        let params = Form(test_add());
+        let resp = handle_add(data.clone(), params).await.unwrap();
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(CONTENT_TYPE).unwrap(),
+            HeaderValue::from_static("text/plain")
+        );
+        assert!(resp.body().as_str().contains("Success"));
+
+        let params = Form(test_add());
+        let _error = handle_add(data.clone(), params).await.unwrap_err();
+    }
+
+    #[actix_rt::test]
     async fn handle_rsvp_unit_test() {
         let state = TestRequest::default()
             .app_data(web::Data::new(AppState::default()))
@@ -239,8 +275,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        // TODO test more?
-        //assert_eq!(resp.body().as_str(), "Your name is John");
+        assert!(resp.body().as_str().contains("Confirmation"));
     }
 
     #[actix_rt::test]
@@ -255,14 +290,13 @@ mod tests {
             .uri("/rsvp")
             .set_form(&test_rsvp())
             .to_request();
-        let resp: ServiceResponse = app.call(req).await.unwrap();
+        let mut resp: ServiceResponse = app.call(req).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        // TODO test more?
-        //assert_eq!(resp.response().body().as_str(), format!("Your name is {}", name));
+        assert!(resp.take_body().as_str().contains("Confirmation"));
     }
 }

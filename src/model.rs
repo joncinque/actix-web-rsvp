@@ -10,6 +10,13 @@ pub struct NameParams {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct AddParams {
+    pub name: String,
+    pub email: String,
+    pub plus_one_name: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RsvpParams {
     pub name: String,
     pub attending: bool,
@@ -40,7 +47,7 @@ pub struct RsvpModel {
 }
 
 impl RsvpModel {
-    pub fn new_with_params(params: &RsvpParams, datetime: DateTime<Utc>) -> Self {
+    pub fn new_with_rsvp(params: &RsvpParams, datetime: DateTime<Utc>) -> Self {
         Self {
             name: params.name.clone(),
             attending: params.attending,
@@ -72,5 +79,22 @@ impl RsvpModel {
         self.comments = params.comments.clone();
         self.updated_at = datetime;
         Ok(())
+    }
+
+    pub fn new_with_add(params: &AddParams, datetime: DateTime<Utc>) -> Self {
+        Self {
+            name: params.name.clone(),
+            attending: false,
+            email: params.email.clone(),
+            attending_secondary: false,
+            attending_tertiary: false,
+            dietary_restrictions: String::default(),
+            plus_one_attending: false,
+            plus_one_name: params.plus_one_name.clone(),
+            plus_one_dietary_restrictions: String::default(),
+            comments: String::default(),
+            created_at: datetime,
+            updated_at: datetime,
+        }
     }
 }
