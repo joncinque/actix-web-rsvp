@@ -7,7 +7,7 @@ mod state;
 use {
     crate::{
         error::{error_handlers, Error},
-        model::{AddParams, NameParams, RsvpParams},
+        model::{AddParams, ErrorContext, NameParams, RsvpParams},
         state::AppState,
     },
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
@@ -15,9 +15,19 @@ use {
     clap::{App as ClapApp, Arg},
     log::{error, info},
     serde_json::json,
+    tinytemplate::TinyTemplate,
 };
 
 static NOT_FOUND_MESSAGE: &str = "Your name was not found, sorry! Please use the exact name from the invitation email, or contact the admin if you think something is wrong.";
+
+fn name_not_found(tt: &TinyTemplate<'_>) -> Result<HttpResponse, ActixError> {
+    let ctx = serde_json::to_value(ErrorContext {
+        has_error: true,
+        error: NOT_FOUND_MESSAGE.to_string(),
+    })?;
+    let body = tt.render("index.html", &ctx).map_err(Error::from)?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
 
 fn app_config(config: &mut web::ServiceConfig) {
     config.service(
@@ -35,7 +45,7 @@ fn app_config(config: &mut web::ServiceConfig) {
 
 /// Return the main page
 async fn index(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
-    let ctx = json!({"has_error": false, "error": ""});
+    let ctx = serde_json::to_value(ErrorContext::default())?;
     let body = state.tt.render("index.html", &ctx).map_err(Error::from)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -45,23 +55,18 @@ async fn handle_fetch(
     state: web::Data<AppState<'_>>,
     params: web::Form<NameParams>,
 ) -> Result<HttpResponse, ActixError> {
+    if params.name.is_empty() {
+        return name_not_found(&state.tt);
+    }
     let mut db = state.db.write().unwrap();
     let record = db.get(&params.into_inner().name)?;
     if let Some(record) = record {
-        let ctx = json!({
-            "name" : record.name,
-            "attending": record.attending,
-            "email": record.email,
-        });
+        let ctx = serde_json::to_value(record)?;
+        info!("{}", ctx.to_string());
         let body = state.tt.render("rsvp.html", &ctx).map_err(Error::from)?;
         Ok(HttpResponse::Ok().content_type("text/html").body(body))
     } else {
-        let ctx = json!({
-            "has_error": true,
-            "error" : NOT_FOUND_MESSAGE.to_string(),
-        });
-        let body = state.tt.render("index.html", &ctx).map_err(Error::from)?;
-        Ok(HttpResponse::Ok().content_type("text/html").body(body))
+        name_not_found(&state.tt)
     }
 }
 
@@ -227,9 +232,34 @@ mod tests {
         );
         assert!(!resp.body().as_str().contains(NOT_FOUND_MESSAGE));
 
+        // found plus-one
+        let params = Form(NameParams {
+            name: records[0].plus_one_name.clone(),
+        });
+        let resp = handle_fetch(data.clone(), params).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(CONTENT_TYPE).unwrap(),
+            HeaderValue::from_static("text/html")
+        );
+        assert!(!resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+
         // not found
         let params = Form(NameParams {
             name: "something else".to_string(),
+        });
+        let resp = handle_fetch(data.clone(), params).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert_eq!(
+            resp.headers().get(CONTENT_TYPE).unwrap(),
+            HeaderValue::from_static("text/html")
+        );
+        println!("{}", resp.body().as_str());
+        assert!(resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+
+        // not found empty
+        let params = Form(NameParams {
+            name: "".to_string(),
         });
         let resp = handle_fetch(data.clone(), params).await.unwrap();
         assert_eq!(resp.status(), StatusCode::OK);

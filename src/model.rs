@@ -4,6 +4,12 @@ use {
     serde::{Deserialize, Serialize},
 };
 
+#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
+pub struct ErrorContext {
+    pub has_error: bool,
+    pub error: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct NameParams {
     pub name: String,

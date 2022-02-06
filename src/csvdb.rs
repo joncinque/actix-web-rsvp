@@ -108,7 +108,7 @@ impl CsvDb {
             .from_reader(&self.file);
         for result in reader.deserialize() {
             let rsvp: RsvpModel = result?;
-            if rsvp.name.to_lowercase() == name {
+            if rsvp.name.to_lowercase() == name || rsvp.plus_one_name.to_lowercase() == name {
                 return Ok(Some(rsvp));
             }
         }
