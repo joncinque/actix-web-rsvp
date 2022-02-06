@@ -14,7 +14,6 @@ use {
     chrono::Utc,
     clap::{App as ClapApp, Arg},
     log::{error, info},
-    serde_json::json,
     tinytemplate::TinyTemplate,
 };
 
@@ -62,7 +61,6 @@ async fn handle_fetch(
     let record = db.get(&params.into_inner().name)?;
     if let Some(record) = record {
         let ctx = serde_json::to_value(record)?;
-        info!("{}", ctx.to_string());
         let body = state.tt.render("rsvp.html", &ctx).map_err(Error::from)?;
         Ok(HttpResponse::Ok().content_type("text/html").body(body))
     } else {
@@ -86,11 +84,7 @@ async fn handle_rsvp(
             if let Err(error) = email.send_csv(&params, contents, state.test).await {
                 error!("Could not send confirmation email: {:?}", error);
             }
-            let ctx = json!({
-                "name" : record.name,
-                "attending": record.attending,
-                "email": record.email,
-            });
+            let ctx = serde_json::to_value(record)?;
             let body = state.tt.render("confirm.html", &ctx).map_err(Error::from)?;
             Ok(HttpResponse::Ok().content_type("text/html").body(body))
         }

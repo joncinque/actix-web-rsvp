@@ -30,6 +30,43 @@
               Email: {email}
             </span>
           </li>
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Attending Secondary: {{ if attending_secondary }}Yes{{ else }}No{{ endif }}
+            </span>
+          </li>
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Attending Tertiary: {{ if attending_tertiary }}Yes{{ else }}No{{ endif }}
+            </span>
+          </li>
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Dietary Restrictions: {dietary_restrictions}
+            </span>
+          </li>
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Plus-One: {plus_one_name}
+            </span>
+          </li>
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Attending: {{ if plus_one_attending }}Yes{{ else }}No{{ endif }}
+            </span>
+          </li>
+          {{ if plus_one_attending }}
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Dietary Restrictions: {plus_one_dietary_restrictions}
+            </span>
+          </li>
+          {{ endif }}
+          <li class="mdl-list__item">
+            <span class="mdl-list__item-primary-content">
+              Comments: {comments}
+            </span>
+          </li>
           {{ endif }}
         </ul>
       </div>

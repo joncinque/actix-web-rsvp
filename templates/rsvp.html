@@ -14,16 +14,14 @@
   <body>
     <div class="mdl-layout mdl-js-layout">
       <div class="mdl-grid">
-        <h3>RSVP</h3>
+        <h3>RSVP for {name}</h3>
       </div>
       <div class="mdl-grid">
         <form action=/rsvp method=POST>
-          <p>
-            <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-              <input class="mdl-textfield__input" type="text" name="name" value="{name}">
-              <label class="mdl-textfield__label" for="name">Name</label>
-            </div>
-          </p>
+          <div style="display: none" class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+            <input class="mdl-textfield__input" type="text" name="name" value="{name}">
+            <label class="mdl-textfield__label" for="name">Name</label>
+          </div>
           <p>
             <label id="yes" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-yes">
               <input
@@ -53,9 +51,96 @@
                 <label class="mdl-textfield__label" for="email">Email</label>
               </div>
             </p>
+            <p>
+              We will also have a secondary event. Will you attend?
+            </p>
+            <p>
+              <label id="yes-secondary" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-yes-secondary">
+                <input type="radio" id="option-yes-secondary"
+                  class="mdl-radio__button" name="attending_secondary" value="true"
+                  {{ if attending_secondary }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">Yes</span>
+              </label>
+              <label id="no-secondary" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-no-secondary">
+                <input type="radio" id="option-no-secondary"
+                  class="mdl-radio__button" name="attending_secondary" value="false"
+                  {{ if not attending_secondary }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">No</span>
+              </label>
+            </p>
+            <p>
+              We will also have a tertiary event. Will you attend?
+            </p>
+            <p>
+              <label id="yes-tertiary" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-yes-tertiary">
+                <input type="radio" id="option-yes-tertiary"
+                  class="mdl-radio__button" name="attending_tertiary" value="true"
+                  {{ if attending_tertiary }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">Yes</span>
+              </label>
+              <label id="no-tertiary" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-no-tertiary">
+                <input type="radio" id="option-no-tertiary"
+                  class="mdl-radio__button" name="attending_tertiary" value="false"
+                  {{ if not attending_tertiary }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">No</span>
+              </label>
+            </p>
+            <p>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" name="dietary_restrictions" value="{dietary_restrictions}">
+                <label class="mdl-textfield__label" for="dietary_restrictions">Any dietary restrictions?</label>
+              </div>
+            </p>
+            <p>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" name="plus_one_name" value="{plus_one_name}">
+                <label class="mdl-textfield__label" for="plus_one_name">Plus-One</label>
+              </div>
+            </p>
+            <p>
+              Will your plus-one attend?
+              <label id="yes-plus-one" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-yes-plus-one">
+                <input
+                  onchange="show('plus-one-said-yes')" type="radio" id="option-yes-plus-one"
+                  class="mdl-radio__button"
+                  name="plus_one_attending"
+                  value="true"
+                  {{ if plus_one_attending }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">Yes</span>
+              </label>
+              <label id="no-plus-one" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-no-plus-one">
+                <input
+                  onchange="hide('plus-one-said-yes')" type="radio" id="option-no-plus-one"
+                  class="mdl-radio__button"
+                  name="plus_one_attending"
+                  value="false"
+                  {{ if not plus_one_attending }}checked{{ endif }}
+                >
+                <span class="mdl-radio__label">No</span>
+              </label>
+            </p>
+            <div id="plus-one-said-yes" style="display: {{ if attending }}inline{{ else }}none{{ endif }}">
+              <p>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" name="plus_one_dietary_restrictions" value="{plus_one_dietary_restrictions}">
+                  <label class="mdl-textfield__label" for="plus_one_dietary_restrictions">Any dietary restrictions?</label>
+                </div>
+              </p>
+            </div>
+            <p>
+              <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                <input class="mdl-textfield__input" type="text" name="comments" value="{comments}">
+                <label class="mdl-textfield__label" for="comments">Comments?</label>
+              </div>
+            </p>
           </div>
           <p>
-            <button type=submit class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Submit form</button>
+            <button type=submit class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Submit</button>
           </p>
         </form>
       </div>
