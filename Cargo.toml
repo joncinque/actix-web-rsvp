@@ -3,6 +3,7 @@ name = "actix-web-rsvp"
 version = "0.0.1"
 authors = ["Jon Cinque <me@jonc.dev>"]
 edition = "2021"
+default-run = "actix-web-rsvp"
 
 [dependencies]
 actix-http = "2"

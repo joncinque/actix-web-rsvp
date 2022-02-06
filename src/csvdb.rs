@@ -34,12 +34,14 @@ impl CsvDb {
     /// Inserts a new record just based on names
     pub fn insert(&mut self, params: &AddParams) -> Result<RsvpModel, Error> {
         if let Some(model) = self.get(&params.name)? {
+            self.file.seek(SeekFrom::End(0))?;
             error!(
                 "Attempted to add {:?}, but {:?} exists already",
                 params, model
             );
             Err(Error::Add(params.clone()))
         } else {
+            self.file.seek(SeekFrom::End(0))?;
             let record_to_insert = RsvpModel::new_with_add(params, self.datetime);
             let mut wtr = WriterBuilder::new()
                 .has_headers(false)
