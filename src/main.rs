@@ -10,6 +10,7 @@ use {
         model::{AddParams, ErrorContext, NameParams, RsvpParams},
         state::AppState,
     },
+    actix_files::Files,
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
     chrono::Utc,
     clap::{App as ClapApp, Arg},
@@ -24,16 +25,17 @@ fn name_not_found(tt: &TinyTemplate<'_>) -> Result<HttpResponse, ActixError> {
         has_error: true,
         error: NOT_FOUND_MESSAGE.to_string(),
     })?;
-    let body = tt.render("index.html", &ctx).map_err(Error::from)?;
+    let body = tt.render("fetch.html", &ctx).map_err(Error::from)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
 fn app_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("")
+            .service(web::resource("/").route(web::get().to(index)))
             .service(
-                web::resource("/")
-                    .route(web::get().to(index))
+                web::resource("/fetch")
+                    .route(web::get().to(fetch))
                     .route(web::post().to(handle_fetch)),
             )
             .service(web::resource("/rsvp").route(web::post().to(handle_rsvp)))
@@ -42,10 +44,17 @@ fn app_config(config: &mut web::ServiceConfig) {
     );
 }
 
-/// Return the main page
+/// Return the index page
 async fn index(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
     let ctx = serde_json::to_value(ErrorContext::default())?;
     let body = state.tt.render("index.html", &ctx).map_err(Error::from)?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
+/// Return the fetch page
+async fn fetch(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
+    let ctx = serde_json::to_value(ErrorContext::default())?;
+    let body = state.tt.render("fetch.html", &ctx).map_err(Error::from)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
@@ -158,6 +167,7 @@ async fn main() -> std::io::Result<()> {
     // start http server
     HttpServer::new(move || {
         App::new()
+            .service(Files::new("/static", "./static").prefer_utf8(true))
             .wrap(middleware::Logger::default())
             .app_data(web::Data::new(AppState::new(
                 matches.values_of("admin").unwrap().collect::<Vec<_>>(),

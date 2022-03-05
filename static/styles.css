@@ -1,0 +1,113 @@
+body {
+  margin: 0;
+}
+
+/* Disable ugly boxes around images in IE10 */
+a img{
+  border: 0px;
+}
+
+.mdl-layout__drawer-button {
+  color: white;
+}
+
+.banner-section {
+  position: relative;
+  height: 800px;
+  width: auto;
+  background-color: #f3f3f3;
+  background: url('/static/transparent.jpg') center 30% no-repeat;
+  background-size: cover;
+}
+
+.banner-text {
+  margin: 0;
+  color: white;
+  line-height: 1;
+}
+
+.banner-title {
+  font-size: 52px;
+  padding-top: 300px;
+  font-weight: 500;
+}
+
+.banner-subtitle {
+  padding-top: 50px;
+  font-size: 26px;
+}
+
+.event-info {
+  background-color: rgb(227, 223, 218);
+}
+
+.event-info-top {
+  background: url('/static/top.png') center top 30% no-repeat;
+  background-size: cover;
+  height: 200px;
+}
+
+.event-info-bottom {
+  background: url('/static/bottom.png') center bottom 30% no-repeat;
+  background-size: cover;
+  height: 100px;
+}
+
+.event-info-text {
+  color: rgb(18, 18, 18);
+  width: auto;
+  position: relative;
+  padding: 64px;
+}
+
+.event-info-title {
+  font-size: 26px;
+}
+
+.event-info-details {
+  font-size: 18px;
+}
+
+.event-info-rsvp, a {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.schedule-info, .travel-info, .faq-info {
+  border-bottom: solid 1px lightgrey;
+}
+
+.event-info-rsvp-button {
+  font-size: 18px;
+  margin-top: 36px;
+  background-color: transparent;
+  border: 2px solid;
+  border-radius: 5px;
+  padding: 0px 20px;
+  height: 50px;
+  width: 196px;
+  position: relative;
+  color: currentcolor;
+  transition: transform 200ms ease-in-out 0s;
+}
+
+/**** Mobile layout ****/
+@media (max-width: 900px) {
+  .banner-section {
+    height: 350px;
+  }
+  .banner-title {
+    padding-top: 100px;
+    font-size: 26px;
+  }
+  .banner-subtitle {
+    font-size: 18px;
+  }
+  .event-info-top {
+    height: 100px;
+  }
+  .event-info-bottom {
+    height: 50px;
+  }
+}

@@ -8,6 +8,7 @@ use {
 };
 
 static ERROR: &str = include_str!("../templates/error.html");
+static FETCH: &str = include_str!("../templates/fetch.html");
 static INDEX: &str = include_str!("../templates/index.html");
 static RSVP: &str = include_str!("../templates/rsvp.html");
 static CONFIRM: &str = include_str!("../templates/confirm.html");
@@ -61,6 +62,7 @@ impl<'a> AppState<'a> {
 
 fn templates<'a>() -> TinyTemplate<'a> {
     let mut tt = TinyTemplate::new();
+    tt.add_template("fetch.html", FETCH).unwrap();
     tt.add_template("index.html", INDEX).unwrap();
     tt.add_template("rsvp.html", RSVP).unwrap();
     tt.add_template("error.html", ERROR).unwrap();
