@@ -39,8 +39,8 @@ pub struct RsvpParams {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RsvpModel {
     pub name: String,
-    pub attending: bool,
     pub email: String,
+    pub attending: bool,
     pub attending_secondary: bool,
     pub attending_tertiary: bool,
     pub dietary_restrictions: String,
@@ -56,8 +56,8 @@ impl RsvpModel {
     pub fn new_with_rsvp(params: &RsvpParams, datetime: DateTime<Utc>) -> Self {
         Self {
             name: params.name.clone(),
-            attending: params.attending,
             email: params.email.clone(),
+            attending: params.attending,
             attending_secondary: params.attending_secondary,
             attending_tertiary: params.attending_tertiary,
             dietary_restrictions: params.dietary_restrictions.clone(),
@@ -74,8 +74,8 @@ impl RsvpModel {
         if self.name != params.name {
             return Err(Error::Update(params.clone()));
         }
-        self.attending = params.attending;
         self.email = params.email.clone();
+        self.attending = params.attending;
         self.attending_secondary = params.attending_secondary;
         self.attending_tertiary = params.attending_tertiary;
         self.dietary_restrictions = params.dietary_restrictions.clone();
@@ -90,8 +90,8 @@ impl RsvpModel {
     pub fn new_with_add(params: &AddParams, datetime: DateTime<Utc>) -> Self {
         Self {
             name: params.name.clone(),
-            attending: false,
             email: params.email.clone(),
+            attending: false,
             attending_secondary: false,
             attending_tertiary: false,
             dietary_restrictions: String::default(),

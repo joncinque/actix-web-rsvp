@@ -8,10 +8,12 @@ use {
     log::error,
     std::{
         fs::File,
-        io::{BufReader, Read, Seek, SeekFrom},
+        io::{BufReader, Read, Seek, SeekFrom, Write},
     },
     tempfile::tempfile,
 };
+
+const HEADER_LINE: &str = "name,email,attending,attending_secondary,attending_tertiary,dietary_restrictions,plus_one_attending,plus_one_name,plus_one_dietary_restrictions,comments,created_at,updated_at";
 
 pub struct CsvDb {
     pub file: File,
@@ -85,7 +87,7 @@ impl CsvDb {
             let record = record.clone();
             self.file.seek(SeekFrom::Start(0))?;
             let mut wtr = WriterBuilder::new()
-                .has_headers(false)
+                .has_headers(true)
                 .from_writer(&self.file);
             for record in records {
                 if record.name.to_lowercase() != name {
@@ -104,22 +106,23 @@ impl CsvDb {
         self.file.seek(SeekFrom::Start(0))?;
         let name = name.to_lowercase();
         let mut reader = ReaderBuilder::new()
-            .has_headers(false)
+            .has_headers(true)
             .from_reader(&self.file);
+        let mut found_rsvp = None;
         for result in reader.deserialize() {
             let rsvp: RsvpModel = result?;
             if rsvp.name.to_lowercase() == name || rsvp.plus_one_name.to_lowercase() == name {
-                return Ok(Some(rsvp));
+                found_rsvp = Some(rsvp);
             }
         }
-        Ok(None)
+        Ok(found_rsvp)
     }
 
     /// Get all records
     pub fn get_all(&mut self) -> Result<Vec<RsvpModel>, Error> {
         self.file.seek(SeekFrom::Start(0))?;
         let mut reader = ReaderBuilder::new()
-            .has_headers(false)
+            .has_headers(true)
             .from_reader(&self.file);
         let mut records = vec![];
         for result in reader.deserialize() {
@@ -137,10 +140,18 @@ impl CsvDb {
         buf_reader.read_to_string(&mut contents).unwrap();
         contents
     }
+
+    /// Add just the header row, useful for testing
+    pub fn add_header(&mut self) {
+        self.file.seek(SeekFrom::Start(0)).unwrap();
+        writeln!(self.file, "{}", HEADER_LINE).unwrap();
+    }
 }
 impl Default for CsvDb {
     fn default() -> Self {
-        CsvDb::new(tempfile().unwrap())
+        let mut db = CsvDb::new(tempfile().unwrap());
+        db.add_header();
+        db
     }
 }
 
@@ -150,6 +161,7 @@ pub mod test {
 
     pub fn test_db(num: usize) -> CsvDb {
         let mut db = CsvDb::new(tempfile().unwrap());
+        db.add_header();
         let rsvps = test_rsvps(num);
         for rsvp in rsvps {
             db.upsert(&rsvp).unwrap();
@@ -201,16 +213,18 @@ pub mod test {
     fn insert() {
         let datetime = Utc::now();
         let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
+        db.add_header();
         let add = test_add();
         let model = db.insert(&add).unwrap();
 
         let contents = db.dump();
         assert_eq!(
             format!(
-                "{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                "{}\n{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                HEADER_LINE,
                 model.name,
-                model.attending,
                 model.email,
+                model.attending,
                 model.attending_secondary,
                 model.attending_tertiary,
                 model.dietary_restrictions,
@@ -236,16 +250,18 @@ pub mod test {
     fn upsert_one() {
         let datetime = Utc::now();
         let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
+        db.add_header();
         let rsvp = test_rsvp();
         db.upsert(&rsvp).unwrap();
 
         let contents = db.dump();
         assert_eq!(
             format!(
-                "{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                "{}\n{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                HEADER_LINE,
                 rsvp.name,
-                rsvp.attending,
                 rsvp.email,
+                rsvp.attending,
                 rsvp.attending_secondary,
                 rsvp.attending_tertiary,
                 rsvp.dietary_restrictions,
@@ -269,7 +285,7 @@ pub mod test {
 
     #[test]
     fn upsert() {
-        let mut db = CsvDb::new(tempfile().unwrap());
+        let mut db = CsvDb::default();
         let num_test = 50;
         let rsvps = test_rsvps(50);
         for rsvp in rsvps {
@@ -284,8 +300,8 @@ pub mod test {
 
         let updated = RsvpParams {
             name: format!("John-{}", test_index),
-            attending: true,
             email: "".to_string(),
+            attending: true,
             attending_secondary: true,
             attending_tertiary: true,
             dietary_restrictions: "".to_string(),
@@ -303,11 +319,11 @@ pub mod test {
     }
 
     fn check_name(name: &str) {
-        let mut db = CsvDb::new(tempfile().unwrap());
+        let mut db = CsvDb::default();
         db.upsert(&RsvpParams {
             name: name.to_string(),
-            attending: false,
             email: name.to_string(),
+            attending: false,
             attending_secondary: true,
             attending_tertiary: true,
             dietary_restrictions: "".to_string(),
