@@ -110,7 +110,7 @@ fn not_found<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>>
     let tt = request
         .app_data::<web::Data<AppState<'_>>>()
         .map(|t| &t.get_ref().tt);
-    let response = HttpResponse::from(get_error_response(tt, status, "Page not found"));
+    let response = get_error_response(tt, status, "Page not found");
     let res = ServiceResponse::new(request, response).map_into_right_body();
     Ok(ErrorHandlerResponse::Response(res))
 }
@@ -122,7 +122,7 @@ fn internal_server_error<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandler
     let tt = request
         .app_data::<web::Data<AppState<'_>>>()
         .map(|t| &t.get_ref().tt);
-    let response = HttpResponse::from(get_error_response(tt, status, "Internal error"));
+    let response = get_error_response(tt, status, "Internal error");
     let res = ServiceResponse::new(request, response).map_into_right_body();
     Ok(ErrorHandlerResponse::Response(res))
 }

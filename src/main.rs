@@ -221,11 +221,11 @@ mod tests {
     };
 
     trait BodyTest {
-        fn as_str(self) -> String;
+        fn into_str(self) -> String;
     }
 
     impl BodyTest for BoxBody {
-        fn as_str(self) -> String {
+        fn into_str(self) -> String {
             let b = self.try_into_bytes().unwrap();
             std::str::from_utf8(&b).unwrap().to_string()
         }
@@ -250,7 +250,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(!resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(!resp.into_body().into_str().contains(NOT_FOUND_MESSAGE));
 
         // found plus-one
         let params = Form(NameParams {
@@ -262,7 +262,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(!resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(!resp.into_body().into_str().contains(NOT_FOUND_MESSAGE));
 
         // not found
         let params = Form(NameParams {
@@ -274,7 +274,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(resp.into_body().into_str().contains(NOT_FOUND_MESSAGE));
 
         // not found empty
         let params = Form(NameParams {
@@ -286,7 +286,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(resp.into_body().into_str().contains(NOT_FOUND_MESSAGE));
     }
 
     #[actix_rt::test]
@@ -303,7 +303,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/plain")
         );
-        assert!(resp.into_body().as_str().contains("Success"));
+        assert!(resp.into_body().into_str().contains("Success"));
 
         let params = Form(test_add());
         let _error = handle_add(data.clone(), params).await.unwrap_err();
@@ -323,7 +323,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.into_body().as_str().contains("Confirmation"));
+        assert!(resp.into_body().into_str().contains("Confirmation"));
     }
 
     #[actix_rt::test]
@@ -346,6 +346,6 @@ mod tests {
             HeaderValue::from_static("text/html")
         );
         let (_, resp) = resp.into_parts();
-        assert!(resp.into_body().as_str().contains("Confirmation"));
+        assert!(resp.into_body().into_str().contains("Confirmation"));
     }
 }
