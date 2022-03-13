@@ -11,13 +11,13 @@ use {
 #[derive(Default)]
 pub struct Email {
     pub from: String,
-    pub admins: Vec<String>,
+    pub admin: String,
 }
 impl Email {
-    pub fn new(from: &str, admins: &[&str]) -> Self {
+    pub fn new(from: &str, admin: &str) -> Self {
         Self {
             from: from.to_string(),
-            admins: admins.iter().map(|x| x.to_string()).collect::<Vec<_>>(),
+            admin: admin.to_string(),
         }
     }
 
@@ -34,13 +34,10 @@ impl Email {
     }
 
     fn csv_email(&self, rsvp: &RsvpParams, csv_contents: String) -> Result<Message, Error> {
-        let mut message = Message::builder()
+        Message::builder()
             .from(self.from.parse().map_err(Error::from)?)
-            .reply_to(self.from.parse().map_err(Error::from)?);
-        for admin in &self.admins {
-            message = message.to(admin.parse().map_err(Error::from)?);
-        }
-        message
+            .reply_to(self.from.parse().map_err(Error::from)?)
+            .to(self.admin.parse().map_err(Error::from)?)
             .subject("New RSVP!")
             .multipart(
                 MultiPart::mixed()
@@ -57,13 +54,11 @@ impl Email {
     }
 
     fn error_email(&self, error: &Error, rsvp: &RsvpParams) -> Result<Message, Error> {
-        let mut message = Message::builder()
+        Message::builder()
             .from(self.from.parse().map_err(Error::from)?)
-            .reply_to(self.from.parse().map_err(Error::from)?);
-        for admin in &self.admins {
-            message = message.to(admin.parse().map_err(Error::from)?);
-        }
-        message.subject("Error on RSVP")
+            .reply_to(self.from.parse().map_err(Error::from)?)
+            .to(self.admin.parse().map_err(Error::from)?)
+            .subject("Error on RSVP")
             .multipart(
                 MultiPart::mixed()
                     .singlepart(SinglePart::plain(format!("Error on new RSVP, try to get in touch with them or put it in yourself.\nError: {}\nRSVP: {}", error, serde_json::to_string(rsvp).map_err(Error::from)?)))

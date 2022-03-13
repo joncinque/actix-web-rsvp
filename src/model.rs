@@ -10,6 +10,11 @@ pub struct ErrorContext {
     pub error: String,
 }
 
+#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
+pub struct IndexContext {
+    pub admin: String,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct NameParams {
     pub name: String,

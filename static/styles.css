@@ -7,8 +7,21 @@ a img{
   border: 0px;
 }
 
-.mdl-layout__drawer-button {
+.index-drawer > .mdl-layout__drawer-button {
   color: white;
+}
+
+.rsvp-button {
+  font-size: 18px;
+  background-color: transparent;
+  border: 2px solid;
+  border-radius: 5px;
+  padding: 0px 20px;
+  height: 40px;
+  width: 150px;
+  position: relative;
+  color: currentcolor;
+  transition: transform 200ms ease-in-out 0s;
 }
 
 .banner-section {
@@ -57,7 +70,8 @@ a img{
   color: rgb(18, 18, 18);
   width: auto;
   position: relative;
-  padding: 64px;
+  padding: 96px;
+  line-height: 30px;
 }
 
 .event-info-title {
@@ -92,6 +106,26 @@ a img{
   transition: transform 200ms ease-in-out 0s;
 }
 
+.photo {
+  width: 512px;
+  padding: 5px;
+}
+
+.photo-card-image.mdl-card.photo1 {
+  background: url('/static/photo1.jpg') center / cover;
+}
+
+.photo-card-image > .mdl-card__actions {
+  height: 52px;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.photo-card-image__filename {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 /**** Mobile layout ****/
 @media (max-width: 900px) {
   .banner-section {
@@ -109,5 +143,9 @@ a img{
   }
   .event-info-bottom {
     height: 50px;
+  }
+  .photo {
+    width: 256px;
+    padding: 2px;
   }
 }

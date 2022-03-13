@@ -12,6 +12,7 @@ static FETCH: &str = include_str!("../templates/fetch.html");
 static INDEX: &str = include_str!("../templates/index.html");
 static RSVP: &str = include_str!("../templates/rsvp.html");
 static CONFIRM: &str = include_str!("../templates/confirm.html");
+static PHOTOS: &str = include_str!("../templates/photos.html");
 
 pub struct AppState<'a> {
     pub test: bool,
@@ -31,7 +32,7 @@ impl<'a> Default for AppState<'a> {
 }
 impl<'a> AppState<'a> {
     pub fn new<'arg>(
-        admins: Vec<&'arg str>,
+        admin: &'arg str,
         csv_filename: &'arg str,
         from: &'arg str,
         test: bool,
@@ -47,7 +48,7 @@ impl<'a> AppState<'a> {
                     .unwrap(),
             ))),
             tt: templates(),
-            email: Email::new(from, &admins),
+            email: Email::new(from, admin),
         }
     }
 
@@ -67,5 +68,6 @@ fn templates<'a>() -> TinyTemplate<'a> {
     tt.add_template("rsvp.html", RSVP).unwrap();
     tt.add_template("error.html", ERROR).unwrap();
     tt.add_template("confirm.html", CONFIRM).unwrap();
+    tt.add_template("photos.html", PHOTOS).unwrap();
     tt
 }

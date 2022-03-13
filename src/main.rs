@@ -7,7 +7,7 @@ mod state;
 use {
     crate::{
         error::{error_handlers, Error},
-        model::{AddParams, ErrorContext, NameParams, RsvpParams},
+        model::{AddParams, ErrorContext, IndexContext, NameParams, RsvpParams},
         state::AppState,
     },
     actix_files::Files,
@@ -33,6 +33,7 @@ fn app_config(config: &mut web::ServiceConfig) {
     config.service(
         web::scope("")
             .service(web::resource("/").route(web::get().to(index)))
+            .service(web::resource("/photos").route(web::get().to(photos)))
             .service(
                 web::resource("/fetch")
                     .route(web::get().to(fetch))
@@ -46,8 +47,17 @@ fn app_config(config: &mut web::ServiceConfig) {
 
 /// Return the index page
 async fn index(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
-    let ctx = serde_json::to_value(ErrorContext::default())?;
+    let admin = state.email.admin.clone();
+    let ctx = serde_json::to_value(IndexContext { admin })?;
     let body = state.tt.render("index.html", &ctx).map_err(Error::from)?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(body))
+}
+
+/// Return the photos page
+async fn photos(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
+    let admin = state.email.admin.clone();
+    let ctx = serde_json::to_value(IndexContext { admin })?;
+    let body = state.tt.render("photos.html", &ctx).map_err(Error::from)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
 
@@ -157,8 +167,7 @@ async fn main() -> std::io::Result<()> {
                 .value_name("ADMIN_EMAIL")
                 .help("Sets the admin email address, receives a message on every RSVP")
                 .required(true)
-                .takes_value(true)
-                .multiple(true),
+                .takes_value(true),
         )
         .get_matches();
     std::env::set_var("RUST_LOG", "debug");
@@ -170,7 +179,7 @@ async fn main() -> std::io::Result<()> {
             .service(Files::new("/static", "./static").prefer_utf8(true))
             .wrap(middleware::Logger::default())
             .app_data(web::Data::new(AppState::new(
-                matches.values_of("admin").unwrap().collect::<Vec<_>>(),
+                matches.value_of("admin").unwrap(),
                 matches.value_of("csv").unwrap(),
                 matches.value_of("from").unwrap(),
                 matches.is_present("test"),
