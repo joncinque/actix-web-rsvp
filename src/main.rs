@@ -163,6 +163,16 @@ async fn main() -> std::io::Result<()> {
                 .required(true),
         )
         .arg(
+            Arg::with_name("port")
+                .long("port")
+                .short("p")
+                .value_name("PORT")
+                .help("Sets the port to bind to")
+                .default_value("8080")
+                .required(true)
+                .takes_value(true),
+        )
+        .arg(
             Arg::with_name("admin")
                 .value_name("ADMIN_EMAIL")
                 .help("Sets the admin email address, receives a message on every RSVP")
@@ -174,6 +184,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     // start http server
+    let bind_address = format!("127.0.0.1:{}", matches.value_of("port").unwrap());
     HttpServer::new(move || {
         App::new()
             .service(Files::new("/static", "./static").prefer_utf8(true))
@@ -186,7 +197,7 @@ async fn main() -> std::io::Result<()> {
             )))
             .configure(app_config)
     })
-    .bind("127.0.0.1:8080")?
+    .bind(&bind_address)?
     .run()
     .await
 }
@@ -196,31 +207,27 @@ mod tests {
     use {
         super::*,
         crate::csvdb::test::{test_add, test_db, test_rsvp},
+        actix_http::body::BoxBody,
         actix_web::{
-            body::{Body, ResponseBody},
+            body::MessageBody,
             dev::{Service, ServiceResponse},
-            http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
+            http::{
+                header::{HeaderValue, CONTENT_TYPE},
+                StatusCode,
+            },
             test::{self, TestRequest},
             web::Form,
         },
     };
 
     trait BodyTest {
-        fn as_str(&self) -> &str;
+        fn as_str(self) -> String;
     }
 
-    impl BodyTest for ResponseBody<Body> {
-        fn as_str(&self) -> &str {
-            match self {
-                ResponseBody::Body(ref b) => match b {
-                    Body::Bytes(ref by) => std::str::from_utf8(by).unwrap(),
-                    _ => panic!(),
-                },
-                ResponseBody::Other(ref b) => match b {
-                    Body::Bytes(ref by) => std::str::from_utf8(by).unwrap(),
-                    _ => panic!(),
-                },
-            }
+    impl BodyTest for BoxBody {
+        fn as_str(self) -> String {
+            let b = self.try_into_bytes().unwrap();
+            std::str::from_utf8(&b).unwrap().to_string()
         }
     }
 
@@ -243,7 +250,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(!resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(!resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
 
         // found plus-one
         let params = Form(NameParams {
@@ -255,7 +262,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(!resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(!resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
 
         // not found
         let params = Form(NameParams {
@@ -267,8 +274,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        println!("{}", resp.body().as_str());
-        assert!(resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
 
         // not found empty
         let params = Form(NameParams {
@@ -280,8 +286,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        println!("{}", resp.body().as_str());
-        assert!(resp.body().as_str().contains(NOT_FOUND_MESSAGE));
+        assert!(resp.into_body().as_str().contains(NOT_FOUND_MESSAGE));
     }
 
     #[actix_rt::test]
@@ -298,7 +303,7 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/plain")
         );
-        assert!(resp.body().as_str().contains("Success"));
+        assert!(resp.into_body().as_str().contains("Success"));
 
         let params = Form(test_add());
         let _error = handle_add(data.clone(), params).await.unwrap_err();
@@ -318,12 +323,12 @@ mod tests {
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.body().as_str().contains("Confirmation"));
+        assert!(resp.into_body().as_str().contains("Confirmation"));
     }
 
     #[actix_rt::test]
     async fn handle_rsvp_integration_test() {
-        let mut app = test::init_service(
+        let app = test::init_service(
             App::new()
                 .app_data(web::Data::new(AppState::default()))
                 .configure(app_config),
@@ -333,13 +338,14 @@ mod tests {
             .uri("/rsvp")
             .set_form(&test_rsvp())
             .to_request();
-        let mut resp: ServiceResponse = app.call(req).await.unwrap();
+        let resp: ServiceResponse = app.call(req).await.unwrap();
 
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(
             resp.headers().get(CONTENT_TYPE).unwrap(),
             HeaderValue::from_static("text/html")
         );
-        assert!(resp.take_body().as_str().contains("Confirmation"));
+        let (_, resp) = resp.into_parts();
+        assert!(resp.into_body().as_str().contains("Confirmation"));
     }
 }

@@ -1,6 +1,6 @@
 use {
-    actix_web::client::Client,
     actix_web_rsvp::model::AddParams,
+    awc::Client,
     clap::{App, Arg},
 };
 

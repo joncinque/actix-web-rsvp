@@ -3,13 +3,13 @@ use {
         model::{AddParams, RsvpParams},
         state::AppState,
     },
-    actix_http::{body::Body, Response},
+    actix_http::body::BoxBody,
     actix_web::{
         body::MessageBody,
         dev::ServiceResponse,
         http::StatusCode,
-        middleware::errhandlers::{ErrorHandlerResponse, ErrorHandlers},
-        web, ResponseError, Result as ActixResult,
+        middleware::{ErrorHandlerResponse, ErrorHandlers},
+        web, HttpResponse, ResponseError, Result as ActixResult,
     },
     csv::Error as CsvError,
     derive_more::Display,
@@ -19,7 +19,7 @@ use {
     },
     serde_json::{json, Error as SerdeError},
     std::io::Error as IoError,
-    tinytemplate::error::Error as TemplateError,
+    tinytemplate::{error::Error as TemplateError, TinyTemplate},
 };
 
 #[derive(Debug, Display)]
@@ -97,56 +97,62 @@ impl From<SerdeError> for Error {
 impl ResponseError for Error {}
 
 // Custom error handlers, to return HTML responses when an error occurs.
-pub fn error_handlers() -> ErrorHandlers<Body> {
+pub fn error_handlers<B: MessageBody + 'static>() -> ErrorHandlers<B> {
     ErrorHandlers::new()
         .handler(StatusCode::NOT_FOUND, not_found)
         .handler(StatusCode::INTERNAL_SERVER_ERROR, internal_server_error)
 }
 
 // Error handler for a 404 Page not found error.
-fn not_found<B: MessageBody>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
-    let response = get_error_response(&res, "Page not found");
-    Ok(ErrorHandlerResponse::Response(
-        res.into_response(response.into_body()),
-    ))
+fn not_found<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+    let status = res.status();
+    let (request, _) = res.into_parts();
+    let tt = request
+        .app_data::<web::Data<AppState<'_>>>()
+        .map(|t| &t.get_ref().tt);
+    let response = HttpResponse::from(get_error_response(tt, status, "Page not found"));
+    let res = ServiceResponse::new(request, response).map_into_right_body();
+    Ok(ErrorHandlerResponse::Response(res))
 }
 
 // Error handler for a 500 Internal Error
-fn internal_server_error<B: MessageBody>(
-    res: ServiceResponse<B>,
-) -> ActixResult<ErrorHandlerResponse<B>> {
-    let response = get_error_response(&res, "Internal error");
-    Ok(ErrorHandlerResponse::Response(
-        res.into_response(response.into_body()),
-    ))
+fn internal_server_error<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+    let status = res.status();
+    let (request, _) = res.into_parts();
+    let tt = request
+        .app_data::<web::Data<AppState<'_>>>()
+        .map(|t| &t.get_ref().tt);
+    let response = HttpResponse::from(get_error_response(tt, status, "Internal error"));
+    let res = ServiceResponse::new(request, response).map_into_right_body();
+    Ok(ErrorHandlerResponse::Response(res))
 }
 
 // Generic error handler.
-fn get_error_response<B: MessageBody>(res: &ServiceResponse<B>, error: &str) -> Response<Body> {
+fn get_error_response(
+    tt: Option<&TinyTemplate<'_>>,
+    status: StatusCode,
+    error: &str,
+) -> HttpResponse<BoxBody> {
     // Provide a fallback to a simple plain text response in case an error occurs during the
     // rendering of the error page.
     let fallback = |e: &str| {
-        Response::build(res.status())
-            .content_type("text/plain")
-            .body(e.to_string())
+        HttpResponse::new(status)
+            .set_body(e.to_string())
+            .map_into_boxed_body()
     };
 
-    let tt = res
-        .request()
-        .app_data::<web::Data<AppState<'_>>>()
-        .map(|t| &t.get_ref().tt);
     match tt {
         Some(tt) => {
             let ctx = json!({
                 "error" : error.to_string(),
-                "status_code" : res.status().as_str().to_string(),
+                "status_code" : status.as_str().to_string(),
             });
             let body = tt.render("error.html", &ctx);
 
             match body {
-                Ok(body) => Response::build(res.status())
-                    .content_type("text/html")
-                    .body(body),
+                Ok(body) => HttpResponse::new(status)
+                    .set_body(body)
+                    .map_into_boxed_body(),
                 Err(_) => fallback(error),
             }
         }
