@@ -7,7 +7,10 @@ mod state;
 use {
     crate::{
         error::{error_handlers, Error},
-        model::{NUM_PHOTOS, AddParams, ErrorContext, IndexContext, PhotosContext, NameParams, RsvpParams},
+        model::{
+            AddParams, ErrorContext, IndexContext, NameParams, PhotosContext, RsvpParams,
+            NUM_PHOTOS,
+        },
         state::AppState,
     },
     actix_files::Files,
@@ -56,8 +59,14 @@ async fn index(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
 /// Return the photos page
 async fn photos(state: web::Data<AppState<'_>>) -> Result<HttpResponse> {
     let admin = state.email.admin.clone();
-    let photo_indices = (1..=NUM_PHOTOS).collect::<Vec<_>>().try_into().expect("Wrong size");
-    let ctx = serde_json::to_value(PhotosContext { admin, photo_indices })?;
+    let photo_indices = (1..=NUM_PHOTOS)
+        .collect::<Vec<_>>()
+        .try_into()
+        .expect("Wrong size");
+    let ctx = serde_json::to_value(PhotosContext {
+        admin,
+        photo_indices,
+    })?;
     let body = state.tt.render("photos.html", &ctx).map_err(Error::from)?;
     Ok(HttpResponse::Ok().content_type("text/html").body(body))
 }
@@ -352,7 +361,10 @@ mod tests {
 
     #[test]
     fn index_array() {
-        let photo_indices: [usize; NUM_PHOTOS] = (1..=NUM_PHOTOS).collect::<Vec<_>>().try_into().expect("Wrong size");
+        let photo_indices: [usize; NUM_PHOTOS] = (1..=NUM_PHOTOS)
+            .collect::<Vec<_>>()
+            .try_into()
+            .expect("Wrong size");
         assert_eq!(photo_indices.len(), NUM_PHOTOS);
     }
 }
