@@ -4,6 +4,8 @@ use {
     serde::{Deserialize, Serialize},
 };
 
+pub const NUM_PHOTOS: usize = 1;
+
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct ErrorContext {
     pub has_error: bool,
@@ -13,6 +15,12 @@ pub struct ErrorContext {
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct IndexContext {
     pub admin: String,
+}
+
+#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
+pub struct PhotosContext {
+    pub admin: String,
+    pub photo_indices: [usize; NUM_PHOTOS],
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]

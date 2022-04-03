@@ -17,6 +17,7 @@ use {
         address::AddressError, error::Error as EmailError,
         transport::sendmail::Error as SendmailError, transport::stub::Error as StubTransportError,
     },
+    log::error,
     serde_json::{json, Error as SerdeError},
     std::io::Error as IoError,
     tinytemplate::{error::Error as TemplateError, TinyTemplate},
@@ -104,7 +105,9 @@ pub fn error_handlers<B: MessageBody + 'static>() -> ErrorHandlers<B> {
 }
 
 // Error handler for a 404 Page not found error.
-fn not_found<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+fn not_found<B: MessageBody + 'static>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+    error!("{:?}", res.request());
+    error!("{:?}", res.response());
     let status = res.status();
     let (request, _) = res.into_parts();
     let tt = request
@@ -116,7 +119,9 @@ fn not_found<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>>
 }
 
 // Error handler for a 500 Internal Error
-fn internal_server_error<B>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+fn internal_server_error<B: MessageBody + 'static>(res: ServiceResponse<B>) -> ActixResult<ErrorHandlerResponse<B>> {
+    error!("{:?}", res.request());
+    error!("{:?}", res.response());
     let status = res.status();
     let (request, _) = res.into_parts();
     let tt = request
