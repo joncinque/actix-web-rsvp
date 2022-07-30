@@ -38,8 +38,8 @@ pub struct AddParams {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct RsvpParams {
     pub name: String,
-    pub attending: bool,
     pub email: String,
+    pub attending: bool,
     pub attending_secondary: bool,
     pub attending_tertiary: bool,
     pub dietary_restrictions: String,

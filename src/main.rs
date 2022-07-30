@@ -21,7 +21,7 @@ use {
     tinytemplate::TinyTemplate,
 };
 
-static NOT_FOUND_MESSAGE: &str = "Your name was not found, sorry! Please use the exact name from the invitation email, or contact the admin if you think something is wrong.";
+static NOT_FOUND_MESSAGE: &str = "That name was not found, sorry! Please use the exact full name from the invitation email, or contact us if you think something is wrong.";
 
 fn name_not_found(tt: &TinyTemplate<'_>) -> Result<HttpResponse, ActixError> {
     let ctx = serde_json::to_value(ErrorContext {

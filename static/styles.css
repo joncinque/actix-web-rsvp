@@ -35,23 +35,12 @@ ul {
   background-color: #f3f3f3;
   background: url('/static/transparent.jpg') center 30% no-repeat;
   background-size: cover;
-  opacity: 0.8;
-  -webkit-filter: blur(10px);
-  -moz-filter: blur(10px);
-  -o-filter: blur(10px);
-  -ms-filter: blur(10px);
-  filter: blur(10px);
 }
 
 .banner-text {
   margin: 0;
   color: white;
   line-height: 1;
-  -webkit-filter: none;
-  -moz-filter: none;
-  -o-filter: none;
-  -ms-filter: none;
-  filter: none;
   text-shadow: -1px 1px 1px #23430C,
     1px 1px 1px #23430C,
     1px -1px 0 #23430C,

@@ -43,7 +43,7 @@ impl Email {
                 MultiPart::mixed()
                     .singlepart(SinglePart::plain(format!(
                         "Success on new RSVP!\n{}",
-                        serde_json::to_string(rsvp).map_err(Error::from)?
+                        serde_json::to_string_pretty(rsvp).map_err(Error::from)?
                     )))
                     .singlepart(
                         Attachment::new("rsvp.csv".to_string())
@@ -61,7 +61,7 @@ impl Email {
             .subject("Error on RSVP")
             .multipart(
                 MultiPart::mixed()
-                    .singlepart(SinglePart::plain(format!("Error on new RSVP, try to get in touch with them or put it in yourself.\nError: {}\nRSVP: {}", error, serde_json::to_string(rsvp).map_err(Error::from)?)))
+                    .singlepart(SinglePart::plain(format!("Error on new RSVP, try to get in touch with them or put it in yourself.\nError: {}\nRSVP: {}", error, serde_json::to_string_pretty(rsvp).map_err(Error::from)?)))
             ).map_err(Error::from)
     }
 
