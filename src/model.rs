@@ -18,6 +18,13 @@ pub struct IndexContext {
 }
 
 #[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
+pub struct Attendance {
+    pub attending: u32,
+    pub attending_secondary: u32,
+    pub attending_tertiary: u32,
+}
+
+#[derive(Clone, Default, Debug, Serialize, Deserialize, PartialEq)]
 pub struct PhotosContext {
     pub admin: String,
     pub photo_indices: [usize; NUM_PHOTOS],

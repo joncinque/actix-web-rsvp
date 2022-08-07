@@ -1,5 +1,8 @@
 use {
-    crate::{error::Error, model::RsvpParams},
+    crate::{
+        error::Error,
+        model::{Attendance, RsvpParams},
+    },
     lettre::{
         message::{Attachment, Message, MultiPart, SinglePart},
         transport::stub::StubTransport,
@@ -33,7 +36,12 @@ impl Email {
         }
     }
 
-    fn csv_email(&self, rsvp: &RsvpParams, csv_contents: String) -> Result<Message, Error> {
+    fn csv_email(
+        &self,
+        rsvp: &RsvpParams,
+        attendance: &Attendance,
+        csv_contents: String,
+    ) -> Result<Message, Error> {
         Message::builder()
             .from(self.from.parse().map_err(Error::from)?)
             .reply_to(self.from.parse().map_err(Error::from)?)
@@ -42,7 +50,8 @@ impl Email {
             .multipart(
                 MultiPart::mixed()
                     .singlepart(SinglePart::plain(format!(
-                        "Success on new RSVP!\n{}",
+                        "Success on new RSVP!\n{}\n{}",
+                        serde_json::to_string_pretty(attendance).map_err(Error::from)?,
                         serde_json::to_string_pretty(rsvp).map_err(Error::from)?
                     )))
                     .singlepart(
@@ -68,10 +77,11 @@ impl Email {
     pub async fn send_csv(
         &self,
         rsvp: &RsvpParams,
+        attendance: &Attendance,
         csv_contents: String,
         test: bool,
     ) -> Result<(), Error> {
-        let message = self.csv_email(rsvp, csv_contents)?;
+        let message = self.csv_email(rsvp, attendance, csv_contents)?;
         self.send_message(message, test).await?;
         Ok(())
     }

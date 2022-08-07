@@ -1,7 +1,7 @@
 use {
     crate::{
         error::Error,
-        model::{AddParams, RsvpModel, RsvpParams},
+        model::{AddParams, Attendance, RsvpModel, RsvpParams},
     },
     chrono::{DateTime, Utc},
     csv::{ReaderBuilder, WriterBuilder},
@@ -132,6 +132,29 @@ impl CsvDb {
         Ok(records)
     }
 
+    /// Get the current attendance numbers
+    pub fn attendance(&mut self) -> Result<Attendance, Error> {
+        self.file.seek(SeekFrom::Start(0))?;
+        let mut reader = ReaderBuilder::new()
+            .has_headers(true)
+            .from_reader(&self.file);
+        let mut attendance = Attendance::default();
+        for result in reader.deserialize() {
+            let rsvp: RsvpModel = result?;
+            let number_attending = if rsvp.plus_one_attending { 2 } else { 1 };
+            if rsvp.attending {
+                attendance.attending += number_attending;
+            }
+            if rsvp.attending_secondary {
+                attendance.attending_secondary += number_attending;
+            }
+            if rsvp.attending_tertiary {
+                attendance.attending_tertiary += number_attending;
+            }
+        }
+        Ok(attendance)
+    }
+
     /// Doesn't implement ToString because it requires a `&mut self`
     pub fn dump(&mut self) -> String {
         self.file.seek(SeekFrom::Start(0)).unwrap();
@@ -244,6 +267,7 @@ pub mod test {
         assert_eq!(all_records[0], test_record);
         assert!(db.remove(&add.name).unwrap().is_some());
         assert!(db.remove("Blah").unwrap().is_none());
+        assert_eq!(db.attendance().unwrap(), Attendance::default());
     }
 
     #[test]
@@ -281,6 +305,7 @@ pub mod test {
         assert_eq!(all_records[0], test_record);
         assert!(db.remove(&test_rsvp().name).unwrap().is_some());
         assert!(db.remove("Blah").unwrap().is_none());
+        assert_eq!(db.attendance().unwrap(), Attendance::default());
     }
 
     #[test]
@@ -316,6 +341,21 @@ pub mod test {
         assert_eq!(all_records.len(), num_test);
         assert_eq!(all_records[num_test - 1].name, updated.name);
         assert_eq!(all_records[num_test - 1].attending, updated.attending);
+
+        let mut attendance = Attendance::default();
+        for record in all_records {
+            let number_attending = if record.plus_one_attending { 2 } else { 1 };
+            if record.attending {
+                attendance.attending += number_attending;
+            }
+            if record.attending_secondary {
+                attendance.attending_secondary += number_attending;
+            }
+            if record.attending_tertiary {
+                attendance.attending_tertiary += number_attending;
+            }
+        }
+        assert_eq!(db.attendance().unwrap(), attendance);
     }
 
     fn check_name(name: &str) {

@@ -110,7 +110,11 @@ async fn handle_rsvp(
     match db.upsert(&params) {
         Ok(record) => {
             let contents = db.dump();
-            if let Err(error) = email.send_csv(&params, contents, state.test).await {
+            let attendance = db.attendance()?;
+            if let Err(error) = email
+                .send_csv(&params, &attendance, contents, state.test)
+                .await
+            {
                 error!("Could not send confirmation email: {:?}", error);
             }
             let ctx = serde_json::to_value(record)?;
