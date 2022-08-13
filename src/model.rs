@@ -49,9 +49,11 @@ pub struct RsvpParams {
     pub attending: bool,
     pub attending_secondary: bool,
     pub attending_tertiary: bool,
+    pub meal_choice: String,
     pub dietary_restrictions: String,
     pub plus_one_attending: bool,
     pub plus_one_name: String,
+    pub plus_one_meal_choice: String,
     pub plus_one_dietary_restrictions: String,
     pub comments: String,
 }
@@ -63,9 +65,11 @@ pub struct RsvpModel {
     pub attending: bool,
     pub attending_secondary: bool,
     pub attending_tertiary: bool,
+    pub meal_choice: String,
     pub dietary_restrictions: String,
     pub plus_one_attending: bool,
     pub plus_one_name: String,
+    pub plus_one_meal_choice: String,
     pub plus_one_dietary_restrictions: String,
     pub comments: String,
     pub created_at: DateTime<Utc>,
@@ -80,9 +84,11 @@ impl RsvpModel {
             attending: params.attending,
             attending_secondary: params.attending_secondary,
             attending_tertiary: params.attending_tertiary,
+            meal_choice: params.meal_choice.clone(),
             dietary_restrictions: params.dietary_restrictions.clone(),
             plus_one_attending: params.plus_one_attending,
             plus_one_name: params.plus_one_name.clone(),
+            plus_one_meal_choice: params.plus_one_meal_choice.clone(),
             plus_one_dietary_restrictions: params.plus_one_dietary_restrictions.clone(),
             comments: params.comments.clone(),
             created_at: datetime,
@@ -98,9 +104,15 @@ impl RsvpModel {
         self.attending = params.attending;
         self.attending_secondary = params.attending_secondary;
         self.attending_tertiary = params.attending_tertiary;
+        if !params.meal_choice.is_empty() {
+            self.meal_choice = params.meal_choice.clone();
+        }
         self.dietary_restrictions = params.dietary_restrictions.clone();
         self.plus_one_attending = params.plus_one_attending;
         self.plus_one_name = params.plus_one_name.clone();
+        if !params.plus_one_meal_choice.is_empty() {
+            self.plus_one_meal_choice = params.plus_one_meal_choice.clone();
+        }
         self.plus_one_dietary_restrictions = params.plus_one_dietary_restrictions.clone();
         self.comments = params.comments.clone();
         self.updated_at = datetime;
@@ -114,9 +126,11 @@ impl RsvpModel {
             attending: false,
             attending_secondary: false,
             attending_tertiary: false,
+            meal_choice: String::default(),
             dietary_restrictions: String::default(),
             plus_one_attending: false,
             plus_one_name: params.plus_one_name.clone(),
+            plus_one_meal_choice: String::default(),
             plus_one_dietary_restrictions: String::default(),
             comments: String::default(),
             created_at: datetime,

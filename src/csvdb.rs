@@ -13,7 +13,7 @@ use {
     tempfile::tempfile,
 };
 
-const HEADER_LINE: &str = "name,email,attending,attending_secondary,attending_tertiary,dietary_restrictions,plus_one_attending,plus_one_name,plus_one_dietary_restrictions,comments,created_at,updated_at";
+const HEADER_LINE: &str = "name,email,attending,attending_secondary,attending_tertiary,meal_choice,dietary_restrictions,plus_one_attending,plus_one_name,plus_one_meal_choice,plus_one_dietary_restrictions,comments,created_at,updated_at";
 
 pub struct CsvDb {
     pub file: File,
@@ -207,9 +207,11 @@ pub mod test {
             attending: true,
             attending_secondary: true,
             attending_tertiary: false,
+            meal_choice: "Fish".to_string(),
             dietary_restrictions: "Yes".to_string(),
             plus_one_attending: true,
             plus_one_name: "Johnson".to_string(),
+            plus_one_meal_choice: "Veggies".to_string(),
             plus_one_dietary_restrictions: "No".to_string(),
             comments: "Can't wait!".to_string(),
         }
@@ -223,9 +225,11 @@ pub mod test {
                 attending: n % 2 == 0,
                 attending_secondary: n % 3 == 0,
                 attending_tertiary: n % 5 == 0,
+                meal_choice: "Meat".to_string(),
                 dietary_restrictions: "".to_string(),
                 plus_one_attending: n % 2 == 0,
                 plus_one_name: format!("Johnson-{}", n),
+                plus_one_meal_choice: "Veggie".to_string(),
                 plus_one_dietary_restrictions: "Vegetarian".to_string(),
                 comments: format!("{} comments!", n),
             })
@@ -243,16 +247,18 @@ pub mod test {
         let contents = db.dump();
         assert_eq!(
             format!(
-                "{}\n{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                "{}\n{},{},{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
                 HEADER_LINE,
                 model.name,
                 model.email,
                 model.attending,
                 model.attending_secondary,
                 model.attending_tertiary,
+                model.meal_choice,
                 model.dietary_restrictions,
                 model.plus_one_attending,
                 model.plus_one_name,
+                model.plus_one_meal_choice,
                 model.plus_one_dietary_restrictions,
                 model.comments,
                 datetime,
@@ -281,16 +287,18 @@ pub mod test {
         let contents = db.dump();
         assert_eq!(
             format!(
-                "{}\n{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
+                "{}\n{},{},{},{},{},{},{},{},{},{},{},{},{:?},{:?}\n",
                 HEADER_LINE,
                 rsvp.name,
                 rsvp.email,
                 rsvp.attending,
                 rsvp.attending_secondary,
                 rsvp.attending_tertiary,
+                rsvp.meal_choice,
                 rsvp.dietary_restrictions,
                 rsvp.plus_one_attending,
                 rsvp.plus_one_name,
+                rsvp.plus_one_meal_choice,
                 rsvp.plus_one_dietary_restrictions,
                 rsvp.comments,
                 datetime,
@@ -329,9 +337,11 @@ pub mod test {
             attending: true,
             attending_secondary: true,
             attending_tertiary: true,
+            meal_choice: "".to_string(),
             dietary_restrictions: "".to_string(),
             plus_one_attending: false,
             plus_one_name: "".to_string(),
+            plus_one_meal_choice: "".to_string(),
             plus_one_dietary_restrictions: "".to_string(),
             comments: "No comment.".to_string(),
         };
@@ -366,9 +376,11 @@ pub mod test {
             attending: false,
             attending_secondary: true,
             attending_tertiary: true,
+            meal_choice: "".to_string(),
             dietary_restrictions: "".to_string(),
             plus_one_attending: false,
             plus_one_name: "".to_string(),
+            plus_one_meal_choice: "".to_string(),
             plus_one_dietary_restrictions: "".to_string(),
             comments: "No comment.".to_string(),
         })

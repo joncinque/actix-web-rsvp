@@ -90,6 +90,32 @@
               </label>
             </p>
             <p>
+              Please choose your meal for the night of the wedding{{ if meal_choice }} (Current choice: {meal_choice}){{ endif }}:
+            </p>
+            <p>
+              <label id="meal-choice-meat" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-meal-choice-meat">
+                <input type="radio" id="option-meal-choice-meat"
+                  class="mdl-radio__button" name="meal_choice" value="Meat"
+                >
+                <span class="mdl-radio__label">Meat</span>
+              </label>
+              <label id="meal-choice-fish" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-meal-choice-fish">
+                <input type="radio" id="option-meal-choice-fish"
+                  class="mdl-radio__button" name="meal_choice" value="Fish"
+                >
+                <span class="mdl-radio__label">Fish</span>
+              </label>
+              <label id="meal-choice-veggie" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-meal-choice-veggie">
+                <input type="radio" id="option-meal-choice-veggie"
+                  class="mdl-radio__button" name="meal_choice" value="Veggie"
+                >
+                <span class="mdl-radio__label">Veggie</span>
+              </label>
+              <input type="radio" id="option-meal-choice-none" style="visibility: hidden;"
+                class="mdl-radio__button" name="meal_choice" value="" checked
+              >
+            </p>
+            <p>
               <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                 <input class="mdl-textfield__input" type="text" name="dietary_restrictions" value="{dietary_restrictions}">
                 <label class="mdl-textfield__label" for="dietary_restrictions">Any dietary restrictions?</label>
@@ -125,6 +151,32 @@
               </label>
             </p>
             <div id="plus-one-said-yes" style="display: {{ if attending }}inline{{ else }}none{{ endif }}">
+              <p>
+                Please choose your meal for the night of the wedding{{ if plus_one_meal_choice }} (Current choice: {plus_one_meal_choice}){{ endif }}:
+              </p>
+              <p>
+                <label id="plus-one-meal-choice-meat" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-plus-one-meal-choice-meat">
+                  <input type="radio" id="option-plus-one-meal-choice-meat"
+                    class="mdl-radio__button" name="plus_one_meal_choice" value="Meat"
+                  >
+                  <span class="mdl-radio__label">Meat</span>
+                </label>
+                <label id="plus-one-meal-choice-fish" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-plus-one-meal-choice-fish">
+                  <input type="radio" id="option-plus-one-meal-choice-fish"
+                    class="mdl-radio__button" name="plus_one_meal_choice" value="Fish"
+                  >
+                  <span class="mdl-radio__label">Fish</span>
+                </label>
+                <label id="plus-one-meal-choice-veggie" class="mdl-radio mdl-js-radio mdl-js-ripple-effect" for="option-plus-one-meal-choice-veggie">
+                  <input type="radio" id="option-plus-one-meal-choice-veggie"
+                    class="mdl-radio__button" name="plus_one_meal_choice" value="Veggie"
+                  >
+                  <span class="mdl-radio__label">Veggie</span>
+                </label>
+                <input type="radio" id="option-plus-one-meal-choice-none" style="visibility: hidden;"
+                  class="mdl-radio__button" name="plus_one_meal_choice" value="" checked
+                >
+              </p>
               <p>
                 <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
                   <input class="mdl-textfield__input" type="text" name="plus_one_dietary_restrictions" value="{plus_one_dietary_restrictions}">
