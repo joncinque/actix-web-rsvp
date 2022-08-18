@@ -104,7 +104,7 @@ impl CsvDb {
     /// Get a specific record
     pub fn get(&mut self, name: &str) -> Result<Option<RsvpModel>, Error> {
         self.file.seek(SeekFrom::Start(0))?;
-        let name = name.to_lowercase();
+        let name = name.trim().to_lowercase();
         let mut reader = ReaderBuilder::new()
             .has_headers(true)
             .from_reader(&self.file);
