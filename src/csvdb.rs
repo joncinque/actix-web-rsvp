@@ -81,7 +81,7 @@ impl CsvDb {
     /// for v1 and small enough sets.
     pub fn remove(&mut self, name: &str) -> Result<Option<RsvpModel>, Error> {
         let records = self.get_all()?;
-        let name = name.to_lowercase();
+        let name = name.trim().to_lowercase();
         if let Some(record) = records.iter().find(|r| r.name.to_lowercase() == name) {
             self.file.set_len(0)?;
             let record = record.clone();
@@ -104,18 +104,19 @@ impl CsvDb {
     /// Get a specific record
     pub fn get(&mut self, name: &str) -> Result<Option<RsvpModel>, Error> {
         self.file.seek(SeekFrom::Start(0))?;
-        let name = name.trim().to_lowercase();
         let mut reader = ReaderBuilder::new()
             .has_headers(true)
             .from_reader(&self.file);
-        let mut found_rsvp = None;
         for result in reader.deserialize() {
             let rsvp: RsvpModel = result?;
-            if rsvp.name.to_lowercase() == name || rsvp.plus_one_name.to_lowercase() == name {
-                found_rsvp = Some(rsvp);
+            for name in name.split('&') {
+                let name = name.trim().to_lowercase();
+                if rsvp.name.to_lowercase() == name || rsvp.plus_one_name.to_lowercase() == name {
+                    return Ok(Some(rsvp));
+                }
             }
         }
-        Ok(found_rsvp)
+        Ok(None)
     }
 
     /// Get all records
@@ -395,5 +396,23 @@ pub mod test {
         check_name("comma,");
         check_name("newline\n");
         check_name("newline,and comma\n");
+    }
+
+    #[test]
+    fn get() {
+        let datetime = Utc::now();
+        let mut db = CsvDb::new_with_time(tempfile().unwrap(), datetime);
+        db.add_header();
+        let rsvp = test_rsvp();
+        db.upsert(&rsvp).unwrap();
+
+        db.get(&rsvp.name.to_uppercase()).unwrap().unwrap();
+        db.get(&format!(" {} ", rsvp.name)).unwrap().unwrap();
+        db.get(&format!(" {} ", rsvp.plus_one_name))
+            .unwrap()
+            .unwrap();
+        db.get(&format!(" {} & {} ", rsvp.name, rsvp.plus_one_name))
+            .unwrap()
+            .unwrap();
     }
 }
