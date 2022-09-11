@@ -16,7 +16,7 @@ use {
     actix_files::Files,
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
     chrono::Utc,
-    clap::{App as ClapApp, Arg},
+    clap::{value_parser, App as ClapApp, Arg},
     log::{error, info},
     tinytemplate::TinyTemplate,
 };
@@ -156,7 +156,7 @@ async fn main() -> std::io::Result<()> {
         .about("Web server for handling RSVPs to a CSV file")
         .arg(
             Arg::with_name("test")
-                .short("t")
+                .short('t')
                 .long("test")
                 .help("Test mode, doesn't actually send emails")
                 .takes_value(false),
@@ -174,16 +174,15 @@ async fn main() -> std::io::Result<()> {
                 .value_name("CSV_FILE")
                 .help("Specifies a CSV file to use for RSVPs")
                 .default_value("rsvp.csv")
-                .required(true),
+                .takes_value(true),
         )
         .arg(
             Arg::with_name("port")
                 .long("port")
-                .short("p")
+                .short('p')
                 .value_name("PORT")
                 .help("Sets the port to bind to")
                 .default_value("8080")
-                .required(true)
                 .takes_value(true),
         )
         .arg(
@@ -193,11 +192,22 @@ async fn main() -> std::io::Result<()> {
                 .required(true)
                 .takes_value(true),
         )
+        .arg(
+            Arg::with_name("workers")
+                .long("workers")
+                .short('w')
+                .value_name("NUM_WORKERS")
+                .help("Number of worker threads to spawn")
+                .default_value("1")
+                .takes_value(true)
+                .value_parser(value_parser!(usize)),
+        )
         .get_matches();
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
     // start http server
+    let workers = *matches.get_one::<usize>("workers").unwrap();
     let bind_address = format!("127.0.0.1:{}", matches.value_of("port").unwrap());
     HttpServer::new(move || {
         App::new()
@@ -211,7 +221,7 @@ async fn main() -> std::io::Result<()> {
             )))
             .configure(app_config)
     })
-    .workers(1)
+    .workers(workers)
     .bind(&bind_address)?
     .run()
     .await

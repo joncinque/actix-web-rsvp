@@ -11,7 +11,7 @@ actix-http = "3"
 actix-web = "4"
 awc = "3"
 chrono = { version = "0.4", features = ["serde"] }
-clap = "2"
+clap = "3"
 csv = "1"
 derive_more = "0.99"
 env_logger = "0.9"
