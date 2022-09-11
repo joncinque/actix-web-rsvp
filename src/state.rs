@@ -1,10 +1,8 @@
 use {
     crate::{csvdb::CsvDb, email::Email},
-    std::{
-        fs::OpenOptions,
-        sync::{Arc, RwLock},
-    },
+    std::{fs::OpenOptions, sync::Arc},
     tinytemplate::TinyTemplate,
+    tokio::sync::RwLock,
 };
 
 static ERROR: &str = include_str!("../templates/error.html");

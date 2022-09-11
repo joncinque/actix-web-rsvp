@@ -86,7 +86,7 @@ async fn handle_fetch(
     if params.name.is_empty() {
         return name_not_found(&state.tt);
     }
-    let mut db = state.db.write().unwrap();
+    let mut db = state.db.write().await;
     let record = db.get(&params.into_inner().name)?;
     if let Some(record) = record {
         let ctx = serde_json::to_value(record)?;
@@ -102,7 +102,7 @@ async fn handle_rsvp(
     state: web::Data<AppState<'_>>,
     params: web::Form<RsvpParams>,
 ) -> Result<HttpResponse, ActixError> {
-    let mut db = state.db.write().unwrap();
+    let mut db = state.db.write().await;
     let email = &state.email;
     db.update_time(Utc::now());
     let params = params.into_inner();
@@ -139,7 +139,7 @@ async fn handle_add(
     state: web::Data<AppState<'_>>,
     params: web::Form<AddParams>,
 ) -> Result<HttpResponse, ActixError> {
-    let mut db = state.db.write().unwrap();
+    let mut db = state.db.write().await;
     db.update_time(Utc::now());
     let params = params.into_inner();
     info!("New person! {:?}", params);
@@ -211,6 +211,7 @@ async fn main() -> std::io::Result<()> {
             )))
             .configure(app_config)
     })
+    .workers(1)
     .bind(&bind_address)?
     .run()
     .await

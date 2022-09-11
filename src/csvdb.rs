@@ -50,6 +50,7 @@ impl CsvDb {
                 .from_writer(&self.file);
             wtr.serialize(record_to_insert.clone())
                 .map_err(Error::from)?;
+            wtr.flush()?;
             Ok(record_to_insert)
         }
     }
@@ -71,6 +72,7 @@ impl CsvDb {
             .from_writer(&self.file);
         wtr.serialize(record_to_insert.clone())
             .map_err(Error::from)?;
+        wtr.flush()?;
         Ok(record_to_insert)
     }
 
@@ -94,6 +96,7 @@ impl CsvDb {
                     wtr.serialize(record).map_err(Error::from)?;
                 }
             }
+            wtr.flush()?;
             Ok(Some(record))
         } else {
             self.file.seek(SeekFrom::End(0))?;
