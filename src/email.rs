@@ -5,7 +5,7 @@ use {
     },
     lettre::{
         message::{Attachment, Message, MultiPart, SinglePart},
-        transport::stub::StubTransport,
+        transport::stub::AsyncStubTransport,
         AsyncSendmailTransport, AsyncTransport, Tokio1Executor,
     },
     log::info,
@@ -28,7 +28,7 @@ impl Email {
         // types are gross, we can probably do this better some other time
         if test {
             info!("Sending message: {:?}", message);
-            let sender = StubTransport::new_ok();
+            let sender = AsyncStubTransport::new_ok();
             sender.send(message).await.map_err(Error::from)
         } else {
             let sender = AsyncSendmailTransport::<Tokio1Executor>::new();
