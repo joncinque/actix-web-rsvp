@@ -361,7 +361,7 @@ mod tests {
         .await;
         let req = test::TestRequest::post()
             .uri("/rsvp")
-            .set_form(&test_rsvp())
+            .set_form(test_rsvp())
             .to_request();
         let resp: ServiceResponse = app.call(req).await.unwrap();
 
