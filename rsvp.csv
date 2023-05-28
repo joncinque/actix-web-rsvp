@@ -1,0 +1,3 @@
+name,email,attending,attending_secondary,attending_tertiary,meal_choice,dietary_restrictions,plus_one_attending,plus_one_name,plus_one_meal_choice,plus_one_dietary_restrictions,comments,created_at,updated_at
+Test,test@test.com,true,false,false,Fish,,true,,Fish,,,2022-03-01T00:00:00Z,2023-05-28T18:15:21.683888493Z
+Test Again,test@example.com,true,false,false,Meat,,false,,,,,2022-03-01T00:00:00Z,2023-05-28T18:16:04.638178267Z
