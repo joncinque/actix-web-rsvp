@@ -19,7 +19,7 @@ async fn main() {
         )
         .arg(
             Arg::with_name("name")
-                .value_name("Name")
+                .value_name("NAME")
                 .help("New person's name")
                 .required(true)
                 .takes_value(true),
@@ -33,7 +33,7 @@ async fn main() {
         )
         .arg(
             Arg::with_name("plus_one")
-                .value_name("NAME")
+                .value_name("PLUS_ONE_NAME")
                 .help("New person's plus one's name")
                 .required(true)
                 .default_value("")
@@ -53,8 +53,8 @@ async fn main() {
     // Create request builder and send request
     let response = client
         .post(format!("{}/add", matches.value_of("url").unwrap()))
-        .send_form(&params) // <- Send request
-        .await; // <- Wait for response
+        .send_form(&params)
+        .await;
 
     println!("Response: {:?}", response);
 }
