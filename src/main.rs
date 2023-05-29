@@ -16,7 +16,7 @@ use {
     actix_files::Files,
     actix_web::{middleware, web, App, Error as ActixError, HttpResponse, HttpServer, Result},
     chrono::Utc,
-    clap::{value_parser, App as ClapApp, Arg},
+    clap::Parser,
     log::{error, info},
     tinytemplate::TinyTemplate,
 };
@@ -149,79 +149,56 @@ async fn handle_add(
         .body(format!("Success adding!\n{:?}", model)))
 }
 
+/// Web server for handling RSVPs to a CSV file
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Email address which sends out notifications
+    #[arg()]
+    from: String,
+
+    /// Email address to receive notifications
+    #[arg()]
+    admin: String,
+
+    /// Test mode which doesn't actually send emails
+    #[arg(short, long)]
+    test: bool,
+
+    /// CSV file to use for RSVPs
+    #[arg(short, long, default_value_t = String::from("rsvp.csv"))]
+    csv: String,
+
+    /// Port that the server binds to
+    #[arg(short, long, default_value_t = 8080)]
+    port: u16,
+
+    /// Number of web worker threads to spawn
+    #[arg(short, long, default_value_t = 1)]
+    workers: usize,
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let matches = ClapApp::new("CSV RSVP Web Server")
-        .version("0.1")
-        .about("Web server for handling RSVPs to a CSV file")
-        .arg(
-            Arg::with_name("test")
-                .short('t')
-                .long("test")
-                .help("Test mode, doesn't actually send emails")
-                .takes_value(false),
-        )
-        .arg(
-            Arg::with_name("from")
-                .value_name("FROM_EMAIL")
-                .help("Sets the \"from\" email address")
-                .required(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("csv")
-                .long("csv")
-                .value_name("CSV_FILE")
-                .help("Specifies a CSV file to use for RSVPs")
-                .default_value("rsvp.csv")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("port")
-                .long("port")
-                .short('p')
-                .value_name("PORT")
-                .help("Sets the port to bind to")
-                .default_value("8080")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("admin")
-                .value_name("ADMIN_EMAIL")
-                .help("Sets the admin email address, receives a message on every RSVP")
-                .required(true)
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("workers")
-                .long("workers")
-                .short('w')
-                .value_name("NUM_WORKERS")
-                .help("Number of worker threads to spawn")
-                .default_value("1")
-                .takes_value(true)
-                .value_parser(value_parser!(usize)),
-        )
-        .get_matches();
+    let matches = Args::parse();
     std::env::set_var("RUST_LOG", "debug");
     env_logger::init();
 
     // start http server
-    let workers = *matches.get_one::<usize>("workers").unwrap();
-    let bind_address = format!("127.0.0.1:{}", matches.value_of("port").unwrap());
+    let bind_address = format!("127.0.0.1:{}", matches.port);
     HttpServer::new(move || {
         App::new()
             .service(Files::new("/static", "./static").prefer_utf8(true))
             .wrap(middleware::Logger::default())
             .app_data(web::Data::new(AppState::new(
-                matches.value_of("admin").unwrap(),
-                matches.value_of("csv").unwrap(),
-                matches.value_of("from").unwrap(),
-                matches.is_present("test"),
+                &matches.admin,
+                &matches.csv,
+                &matches.from,
+                matches.test,
             )))
             .configure(app_config)
     })
-    .workers(workers)
+    .workers(matches.workers)
     .bind(&bind_address)?
     .run()
     .await
