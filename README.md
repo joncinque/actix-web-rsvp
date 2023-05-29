@@ -64,25 +64,10 @@ great tutorials that explain how to setup `postfix` or other mail tools.
 
 ## Other features
 
+Use the `-h` flag to get enough information about other features:
+
 ```console
 $ cargo run -- -h
-CSV RSVP Web Server 0.1
-Web server for handling RSVPs to a CSV file
-
-USAGE:
-    actix-web-rsvp [OPTIONS] <FROM_EMAIL> <ADMIN_EMAIL>
-
-ARGS:
-    <FROM_EMAIL>     Sets the "from" email address
-    <ADMIN_EMAIL>    Sets the admin email address, receives a message on every RSVP
-
-OPTIONS:
-        --csv <CSV_FILE>           Specifies a CSV file to use for RSVPs [default: rsvp.csv]
-    -h, --help                     Print help information
-    -p, --port <PORT>              Sets the port to bind to [default: 8080]
-    -t, --test                     Test mode, doesn't actually send emails
-    -V, --version                  Print version information
-    -w, --workers <NUM_WORKERS>    Number of worker threads to spawn [default: 1]
 ```
 
 ## Client bin
